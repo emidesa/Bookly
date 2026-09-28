@@ -1,5 +1,7 @@
-import { Stack } from "expo-router";
+import type { JSX } from 'react';
+import { Stack } from 'expo-router';
 
-export default function RootLayout() {
-  return <Stack />;
+// Layout racine : les groupes gèrent leurs propres en-têtes
+export default function RootLayout(): JSX.Element {
+  return <Stack screenOptions={{ headerShown: false }} />;
 }

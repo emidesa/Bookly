@@ -10,12 +10,12 @@ Projet de formation en binôme (certification CDA), évalué sur un barème.
 
 ## Stack technique
 
-- **Frontend** : React Native avec Expo, en **TypeScript** (`frontend/`)
+- **Frontend** : React Native avec Expo, en **TypeScript** (racine du dépôt)
 - **Backend** : Node.js + Express, en **TypeScript**, architecture **MVC** (`backend/`)
 - **Base de données** : **MySQL** (driver `mysql2/promise`)
 - **Authentification** : JWT (jsonwebtoken) + bcrypt
 - **Données livres** : API Google Books, appelée **uniquement depuis le backend**, jamais depuis le frontend
-- **Navigation** : React Navigation (Stack + Bottom Tabs)
+- **Navigation** : **expo-router** (routes basées sur les fichiers de `src/app/`, Stack + Tabs)
 
 Le frontend et le backend sont **strictement séparés** : le frontend ne communique
 avec le backend que par des requêtes HTTP vers l'API. Aucun code partagé entre les deux.
@@ -70,10 +70,25 @@ bookly/
 │   │   └── server.ts            → démarrage du serveur
 │   ├── tsconfig.json
 │   └── .env
-└── frontend/                    ← Appli React Native (Expo, TypeScript)
-    ├── src/ (screens, components, services, context, navigation, theme, types)
-    ├── tsconfig.json
-    └── .env
+│                                ← Appli React Native (Expo, TypeScript) à la racine
+├── src/
+│   ├── app/                     → routes expo-router (un fichier = un écran)
+│   │   ├── _layout.tsx          → layout racine (Stack)
+│   │   ├── index.tsx            → redirige selon la connexion et le rôle
+│   │   ├── auth/                → login.tsx, register.tsx
+│   │   ├── reader/              → _layout.tsx (onglets), library, search, scanner,
+│   │   │                          profile, book/[id].tsx, session-form.tsx
+│   │   └── admin/               → _layout.tsx (onglets), users.tsx
+│   ├── components/              → composants réutilisables (BookCard...)
+│   ├── services/                → appels à l'API (api.ts...)
+│   ├── context/                 → AuthContext, ThemeContext
+│   ├── theme/                   → couleurs clair / sombre
+│   └── types/                   → interfaces (Book, User, ReadingSession...)
+├── assets/                      → icône, splashscreen
+├── app.json
+├── package.json
+├── tsconfig.json
+└── .env
 ```
 
 ## Modèle de données (MySQL)
@@ -90,7 +105,7 @@ bookly/
 ## Variables d'environnement
 
 - **backend/.env** : `PORT`, `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `JWT_SECRET`, `GOOGLE_BOOKS_KEY`
-- **frontend/.env** : `EXPO_PUBLIC_API_URL`
+- **.env** (racine, frontend) : `EXPO_PUBLIC_API_URL`
 
 ## Commandes
 
@@ -98,9 +113,9 @@ bookly/
 # Backend
 cd backend && npm run dev
 
-# Frontend
-cd frontend && npx expo start
-cd frontend && npx expo start -c    # en vidant le cache
+# Frontend (depuis la racine)
+npx expo start
+npx expo start -c    # en vidant le cache
 ```
 
 - Côté frontend, installer les paquets avec `npx expo install`, jamais `npm install`.
@@ -114,6 +129,9 @@ cd frontend && npx expo start -c    # en vidant le cache
   de fonctions, les props des composants, les `req`/`res` d'Express et les résultats des requêtes SQL.
 - Interfaces dans `types/` : `User`, `Book`, `ReadingSession`, corps de requêtes et réponses de l'API.
 - Composants React en PascalCase, un composant par fichier.
+- Fichiers de routes expo-router en minuscules (`library.tsx`, `book/[id].tsx`), dossiers simples sans parenthèses.
+- Un `_layout.tsx` uniquement là où c'est nécessaire : racine, onglets `reader/`, onglets `admin/`.
+- Navigation avec `router.push()` / `<Link>` et `<Redirect>`, jamais d'URL construite à la main quand `typedRoutes` peut la vérifier.
 - `async/await` plutôt que `.then()`.
 - Chaque route de l'API vérifie que la ressource appartient à l'utilisateur connecté.
 - Les requêtes SQL utilisent toujours des paramètres (`?`), jamais de concaténation.
