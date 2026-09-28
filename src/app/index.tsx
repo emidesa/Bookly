@@ -1,17 +1,7 @@
-import { Text, View, StyleSheet } from "react-native";
+import type { JSX } from 'react';
+import { Redirect } from 'expo-router';
 
-export default function Index() {
-  return (
-    <View style={styles.container}>
-      <Text>Edit src/app/index.tsx to edit this screen.</Text>
-    </View>
-  );
+// Point d'entrée : redirigera selon la connexion et le rôle (Personne B)
+export default function Index(): JSX.Element {
+  return <Redirect href="/auth/login" />;
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-});
