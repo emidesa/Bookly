@@ -1,8 +1,8 @@
 import type { ComponentProps, JSX } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Tabs } from 'expo-router';
 import { GlassView, isLiquidGlassAvailable } from 'expo-glass-effect';
-import { SymbolView, type SFSymbol } from 'expo-symbols';
+import { SymbolView, type AndroidSymbol, type SFSymbol } from 'expo-symbols';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeColors } from '../theme/useThemeColors';
 
@@ -12,22 +12,28 @@ type TabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>['tabBar']>
 interface TabItem {
   name: string; // nom du fichier dans src/app/reader
   label: string;
-  icon: SFSymbol; // icône native iOS (SF Symbols)
+  icon: { ios: SFSymbol; android: AndroidSymbol }; // icônes natives (SF Symbols / Material)
 }
 
 // Seuls ces onglets apparaissent (book/[id] et session-form restent cachés)
 const tabItems: TabItem[] = [
-  { name: 'library', label: 'PAL', icon: 'books.vertical' },
-  { name: 'search', label: 'Recherche', icon: 'magnifyingglass' },
-  { name: 'scanner', label: 'Scanner', icon: 'barcode.viewfinder' },
-  { name: 'profile', label: 'Profil', icon: 'person' },
+  { name: 'library', label: 'PAL', icon: { ios: 'books.vertical', android: 'library_books' } },
+  { name: 'search', label: 'Recherche', icon: { ios: 'magnifyingglass', android: 'search' } },
+  { name: 'scanner', label: 'Scanner', icon: { ios: 'barcode.viewfinder', android: 'barcode_scanner' } },
+  { name: 'profile', label: 'Profil', icon: { ios: 'person', android: 'person' } },
 ];
 
 // Barre d'onglets flottante et vitrée (Liquid Glass sur iOS 26, fond translucide sinon)
-export default function GlassTabBar({ state, navigation }: TabBarProps): JSX.Element {
+export default function GlassTabBar({ state, navigation }: TabBarProps): JSX.Element | null {
   const colors = useThemeColors();
   const insets = useSafeAreaInsets();
   const focusedName = state.routes[state.index].name;
+
+  // Pas de barre sur les écrans hors onglets (détail d'un livre, formulaire de session)
+  const isMainTab = tabItems.some((item) => item.name === focusedName);
+  if (!isMainTab) {
+    return null;
+  }
 
   const tabs = tabItems.map((item) => {
     const route = state.routes.find((r) => r.name === item.name);
@@ -66,7 +72,11 @@ export default function GlassTabBar({ state, navigation }: TabBarProps): JSX.Ele
     );
   });
 
-  const bottom = Math.max(insets.bottom - 10, 12);
+  // iPhone : rapprochée de la barre d'accueil ; Android : au-dessus de la navigation système
+  let bottom = Math.max(insets.bottom - 10, 12);
+  if (Platform.OS === 'android') {
+    bottom = insets.bottom + 12;
+  }
 
   if (isLiquidGlassAvailable()) {
     return (
