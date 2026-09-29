@@ -18,6 +18,7 @@ export interface Book {
   cover_url: string | null;
   status: BookStatus;
   added_at: string; // date au format texte dans le JSON
+  pages_read: number | null; // plus haute page lue (sessions), null si aucune session
 }
 
 // Livre trouvé via Google, renvoyé par /api/google/search et /api/google/isbn

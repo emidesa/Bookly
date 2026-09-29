@@ -1,5 +1,5 @@
 import { useEffect, type JSX } from 'react';
-import { Platform, StyleSheet, View, type ViewStyle } from 'react-native';
+import { StyleSheet, View, type ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as SplashScreen from 'expo-splash-screen';
 import Animated, {
@@ -11,12 +11,12 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { splashColors } from '../theme/colors';
+import { serifFont } from '../theme/fonts';
 
 interface AnimatedSplashProps {
   onFinish: () => void; // appelé quand le splash a disparu
 }
 
-const serifFont = Platform.select({ ios: 'Georgia', default: 'serif' });
 const TOTAL_DURATION = 2800;
 
 // Un livre qui monte sur l'étagère après un délai
