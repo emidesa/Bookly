@@ -13,10 +13,10 @@ export async function findByEmail(email: string): Promise<User | null> {
 }
 
 // Crée un lecteur et renvoie son id (le rôle vient du DEFAULT de la table)
-export async function create(email: string, hashedPassword: string): Promise<number> {
+export async function create(email: string, firstName: string, hashedPassword: string): Promise<number> {
   const [result] = await pool.execute<ResultSetHeader>(
-    'INSERT INTO users (email, password) VALUES (?, ?)',
-    [email, hashedPassword],
+    'INSERT INTO users (email, first_name, password) VALUES (?, ?, ?)',
+    [email, firstName, hashedPassword],
   );
   return result.insertId;
 }
@@ -24,7 +24,7 @@ export async function create(email: string, hashedPassword: string): Promise<num
 // Liste tous les utilisateurs, sans mot de passe (admin)
 export async function findAll(): Promise<PublicUser[]> {
   const [rows] = await pool.execute<PublicUserRow[]>(
-    'SELECT id, email, role, created_at FROM users ORDER BY created_at DESC',
+    'SELECT id, email, first_name, role, created_at FROM users ORDER BY created_at DESC',
   );
   return rows;
 }

@@ -29,13 +29,20 @@ function isDuplicateEntry(error: unknown): boolean {
 
 // POST /api/auth/register : crée un compte lecteur
 export async function register(req: Request, res: Response): Promise<void> {
-  const { email, password }: { email?: unknown; password?: unknown } = req.body ?? {};
+  const { email, first_name, password }: { email?: unknown; first_name?: unknown; password?: unknown } = req.body ?? {};
 
   // 1. Champs présents et de type texte
   if (typeof email !== 'string' || typeof password !== 'string') {
     res.status(400).json({ message: 'Email et mot de passe requis' });
     return;
   }
+
+  // Prénom : texte non vide, 50 caractères maximum (taille de la colonne)
+  if (typeof first_name !== 'string' || first_name.trim() === '' || first_name.trim().length > 50) {
+    res.status(400).json({ message: 'Prénom requis (50 caractères maximum)' });
+    return;
+  }
+  const firstName = first_name.trim();
 
   // 2. Format de l'email (normalisé)
   const normalizedEmail = email.trim().toLowerCase();
@@ -60,8 +67,8 @@ export async function register(req: Request, res: Response): Promise<void> {
   const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
 
   try {
-    const id = await User.create(normalizedEmail, hashedPassword);
-    res.status(201).json({ id, email: normalizedEmail, role: 'reader' });
+    const id = await User.create(normalizedEmail, firstName, hashedPassword);
+    res.status(201).json({ id, email: normalizedEmail, first_name: firstName, role: 'reader' });
   } catch (error) {
     // Deux inscriptions simultanées : la contrainte UNIQUE bloque la seconde
     if (isDuplicateEntry(error)) {

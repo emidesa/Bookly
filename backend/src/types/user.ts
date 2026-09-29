@@ -5,6 +5,7 @@ export type Role = 'reader' | 'admin';
 export interface User {
   id: number;
   email: string;
+  first_name: string;
   password: string; // hash bcrypt
   role: Role;
   created_at: Date;
