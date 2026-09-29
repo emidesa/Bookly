@@ -22,6 +22,13 @@ function checkPassword(password: string): string | null {
   return null;
 }
 
+// Signe un token avec le rôle actuel et prépare la réponse { token, user }
+function buildAuthResponse(user: PublicUser): { token: string; user: PublicUser } {
+  const payload: JwtPayload = { id: user.id, role: user.role };
+  const token = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+  return { token, user };
+}
+
 // Détecte l'erreur MySQL de doublon (contrainte UNIQUE)
 function isDuplicateEntry(error: unknown): boolean {
   return typeof error === 'object' && error !== null && 'code' in error && error.code === 'ER_DUP_ENTRY';
@@ -99,11 +106,19 @@ export async function login(req: Request, res: Response): Promise<void> {
     return;
   }
 
-  const payload: JwtPayload = { id: user.id, role: user.role };
-  const token = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
-
   const { password: _password, ...publicUser } = user;
-  const userResponse: PublicUser = publicUser;
+  res.json(buildAuthResponse(publicUser));
+}
 
-  res.json({ token, user: userResponse });
+// GET /api/auth/me : relit l'utilisateur en base et renvoie un token à jour
+export async function me(req: Request, res: Response): Promise<void> {
+  const user = await User.findById(req.user!.id);
+
+  // Compte supprimé depuis la création du token
+  if (!user) {
+    res.status(401).json({ message: 'Compte introuvable' });
+    return;
+  }
+
+  res.json(buildAuthResponse(user));
 }

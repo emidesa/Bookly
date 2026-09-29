@@ -12,6 +12,15 @@ export async function findByEmail(email: string): Promise<User | null> {
   return rows[0] ?? null;
 }
 
+// Cherche un utilisateur par id, sans mot de passe (null si absent)
+export async function findById(id: number): Promise<PublicUser | null> {
+  const [rows] = await pool.execute<PublicUserRow[]>(
+    'SELECT id, email, first_name, role, created_at FROM users WHERE id = ?',
+    [id],
+  );
+  return rows[0] ?? null;
+}
+
 // Crée un lecteur et renvoie son id (le rôle vient du DEFAULT de la table)
 export async function create(email: string, firstName: string, hashedPassword: string): Promise<number> {
   const [result] = await pool.execute<ResultSetHeader>(
