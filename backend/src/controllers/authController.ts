@@ -22,6 +22,28 @@ function checkPassword(password: string): string | null {
   return null;
 }
 
+type ParseResult = { value: string } | { error: string };
+
+// Prénom : texte non vide, 50 caractères maximum (taille de la colonne)
+function parseFirstName(firstName: unknown): ParseResult {
+  if (typeof firstName !== 'string' || firstName.trim() === '' || firstName.trim().length > 50) {
+    return { error: 'Prénom requis (50 caractères maximum)' };
+  }
+  return { value: firstName.trim() };
+}
+
+// Email : format valide, normalisé (espaces et majuscules)
+function parseEmail(email: unknown): ParseResult {
+  if (typeof email !== 'string') {
+    return { error: 'Email requis' };
+  }
+  const normalizedEmail = email.trim().toLowerCase();
+  if (!EMAIL_REGEX.test(normalizedEmail)) {
+    return { error: 'Email invalide' };
+  }
+  return { value: normalizedEmail };
+}
+
 // Signe un token avec le rôle actuel et prépare la réponse { token, user }
 function buildAuthResponse(user: PublicUser): { token: string; user: PublicUser } {
   const payload: JwtPayload = { id: user.id, role: user.role };
@@ -44,19 +66,19 @@ export async function register(req: Request, res: Response): Promise<void> {
     return;
   }
 
-  // Prénom : texte non vide, 50 caractères maximum (taille de la colonne)
-  if (typeof first_name !== 'string' || first_name.trim() === '' || first_name.trim().length > 50) {
-    res.status(400).json({ message: 'Prénom requis (50 caractères maximum)' });
+  // 2. Prénom et format de l'email (normalisé)
+  const parsedFirstName = parseFirstName(first_name);
+  if ('error' in parsedFirstName) {
+    res.status(400).json({ message: parsedFirstName.error });
     return;
   }
-  const firstName = first_name.trim();
-
-  // 2. Format de l'email (normalisé)
-  const normalizedEmail = email.trim().toLowerCase();
-  if (!EMAIL_REGEX.test(normalizedEmail)) {
-    res.status(400).json({ message: 'Email invalide' });
+  const parsedEmail = parseEmail(email);
+  if ('error' in parsedEmail) {
+    res.status(400).json({ message: parsedEmail.error });
     return;
   }
+  const firstName = parsedFirstName.value;
+  const normalizedEmail = parsedEmail.value;
 
   // 3. Critères du mot de passe
   const passwordError = checkPassword(password);
@@ -121,4 +143,45 @@ export async function me(req: Request, res: Response): Promise<void> {
   }
 
   res.json(buildAuthResponse(user));
+}
+
+// PUT /api/auth/me : modifie le prénom et l'email de l'utilisateur connecté
+export async function updateMe(req: Request, res: Response): Promise<void> {
+  const { email, first_name }: { email?: unknown; first_name?: unknown } = req.body ?? {};
+  const userId = req.user!.id;
+
+  const parsedFirstName = parseFirstName(first_name);
+  if ('error' in parsedFirstName) {
+    res.status(400).json({ message: parsedFirstName.error });
+    return;
+  }
+  const parsedEmail = parseEmail(email);
+  if ('error' in parsedEmail) {
+    res.status(400).json({ message: parsedEmail.error });
+    return;
+  }
+
+  // Email déjà pris par un autre compte (garder le sien est autorisé)
+  const owner = await User.findByEmail(parsedEmail.value);
+  if (owner && owner.id !== userId) {
+    res.status(409).json({ message: 'Cet email est déjà utilisé' });
+    return;
+  }
+
+  try {
+    const updated = await User.updateProfile(userId, parsedEmail.value, parsedFirstName.value);
+    const user = updated ? await User.findById(userId) : null;
+    if (!user) {
+      res.status(401).json({ message: 'Compte introuvable' });
+      return;
+    }
+    res.status(200).json(buildAuthResponse(user));
+  } catch (error) {
+    // Deux modifications simultanées vers le même email : la contrainte UNIQUE bloque
+    if (isDuplicateEntry(error)) {
+      res.status(409).json({ message: 'Cet email est déjà utilisé' });
+      return;
+    }
+    throw error;
+  }
 }

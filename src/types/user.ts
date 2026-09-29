@@ -27,3 +27,9 @@ export interface AuthResponse {
   token: string;
   user: User;
 }
+
+// Corps de PUT /api/auth/me (réponse : AuthResponse avec un token à jour)
+export interface UpdateProfileBody {
+  email: string;
+  first_name: string;
+}
