@@ -1,14 +1,5 @@
-import "dotenv/config";
 import mysql from "mysql2/promise";
-
-// Lit une variable d'environnement obligatoire, sinon arrête le serveur
-function requireEnv(name: string): string {
-  const value = process.env[name];
-  if (!value) {
-    throw new Error(`Variable d'environnement manquante : ${name}`);
-  }
-  return value;
-}
+import { requireEnv } from "./env";
 
 // Pool de connexions MySQL partagé par tous les models
 const pool = mysql.createPool({
