@@ -4,6 +4,17 @@ import { BookStatus, CreateBookBody } from '../types/book';
 
 const statusList: BookStatus[] = ['to_read', 'reading', 'read'];
 
+// GET /api/books/trending
+export async function getTrending(_req: Request, res: Response): Promise<void> {
+  try {
+    const books = await Book.findTrending();
+    res.status(200).json(books);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Impossible de charger les recommandations' });
+  }
+}
+
 // GET /api/books
 export async function getAll(req: Request, res: Response): Promise<void> {
   try {
@@ -38,7 +49,7 @@ export async function getOne(req: Request<{ id: string }>, res: Response): Promi
 
 // POST /api/books
 export async function create(req: Request<{}, {}, CreateBookBody>, res: Response): Promise<void> {
-  const { google_id, title, author, total_pages, cover_url } = req.body ?? {};
+  const { google_id, title, author, total_pages, cover_url, description } = req.body ?? {};
 
   // Le body vient du client : on vérifie le vrai type de chaque champ
   if (typeof google_id !== 'string' || google_id.trim() === '' || typeof title !== 'string' || title.trim() === '') {
@@ -57,6 +68,10 @@ export async function create(req: Request<{}, {}, CreateBookBody>, res: Response
     res.status(400).json({ message: 'Couverture invalide' });
     return;
   }
+  if (description !== undefined && description !== null && typeof description !== 'string') {
+    res.status(400).json({ message: 'Résumé invalide' });
+    return;
+  }
 
   try {
     const bookData: CreateBookBody = {
@@ -65,6 +80,7 @@ export async function create(req: Request<{}, {}, CreateBookBody>, res: Response
       author: author ?? null,
       total_pages: total_pages ?? null,
       cover_url: cover_url ?? null,
+      description: description ?? null,
     };
     const id = await Book.create(req.user!.id, bookData);
     const book = await Book.findByIdAndUser(id, req.user!.id);

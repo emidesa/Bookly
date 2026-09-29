@@ -11,9 +11,15 @@ export interface Book {
   author: string | null;
   total_pages: number | null;
   cover_url: string | null;
+  description: string | null;
   status: BookStatus;
   added_at: Date;
 }
 
 // Corps de POST /api/books : un livre trouvé via Google
 export type CreateBookBody = GoogleBookResult;
+
+// Livre populaire : présent dans « readers » PAL (GET /api/books/trending)
+export interface TrendingBook extends GoogleBookResult {
+  readers: number;
+}

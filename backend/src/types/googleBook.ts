@@ -6,6 +6,7 @@ export interface GoogleVolume {
     authors?: string[];
     pageCount?: number;
     imageLinks?: { thumbnail?: string };
+    description?: string; // peut contenir des balises HTML
   };
 }
 
@@ -16,4 +17,5 @@ export interface GoogleBookResult {
   author: string | null;
   total_pages: number | null;
   cover_url: string | null;
+  description: string | null; // résumé en texte simple
 }
