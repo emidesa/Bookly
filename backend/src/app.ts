@@ -3,6 +3,7 @@ import cors from "cors";
 import authRoutes from "./routes/authRoutes";
 import googleRoutes from "./routes/googleRoutes";
 import bookRoutes from "./routes/bookRoutes";
+import adminRoutes from "./routes/adminRoutes";
 
 const app = express();
 
@@ -16,9 +17,10 @@ app.get("/health", (_req: Request, res: Response) => {
 });
 
 // Routes de l'API (branchées au fur et à mesure)
-app.use("/auth", authRoutes);
+app.use("/api/auth", authRoutes);
 app.use("/api/google", googleRoutes);
 app.use("/api/books", bookRoutes);
+app.use("/api/admin", adminRoutes);
 
 // Route inconnue
 app.use((_req: Request, res: Response) => {

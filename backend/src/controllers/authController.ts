@@ -27,7 +27,7 @@ function isDuplicateEntry(error: unknown): boolean {
   return typeof error === 'object' && error !== null && 'code' in error && error.code === 'ER_DUP_ENTRY';
 }
 
-// POST /auth/register : crée un compte lecteur
+// POST /api/auth/register : crée un compte lecteur
 export async function register(req: Request, res: Response): Promise<void> {
   const { email, password }: { email?: unknown; password?: unknown } = req.body ?? {};
 
@@ -72,7 +72,7 @@ export async function register(req: Request, res: Response): Promise<void> {
   }
 }
 
-// POST /auth/login : renvoie un token et l'utilisateur
+// POST /api/auth/login : renvoie un token et l'utilisateur
 export async function login(req: Request, res: Response): Promise<void> {
   const { email, password }: { email?: unknown; password?: unknown } = req.body ?? {};
 
