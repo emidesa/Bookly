@@ -6,33 +6,23 @@ import StatusBadge from './StatusBadge';
 import { serifFont } from '../theme/fonts';
 import { useThemeColors } from '../theme/useThemeColors';
 import { BookStatus, statusLabels } from '../types/book';
-import { getProgressPercent } from '../utils/getProgressPercent';
 
 interface BookCardProps {
   title: string;
   author: string | null;
   coverUrl: string | null;
   status?: BookStatus; // uniquement pour les livres de la PAL
-  pagesRead?: number | null;
-  totalPages?: number | null;
+  progressPercent?: number | null; // calculé par le backend ; null = pages inconnues
   onPress?: () => void; // carte cliquable si fourni
 }
 
-export default function BookCard({ title, author, coverUrl, status, pagesRead, totalPages, onPress }: BookCardProps): JSX.Element {
+export default function BookCard({ title, author, coverUrl, status, progressPercent, onPress }: BookCardProps): JSX.Element {
   const colors = useThemeColors();
 
-  // Progression : seulement pour un livre de la PAL
+  // Progression : seulement pour un livre de la PAL dont le nombre de pages est connu
   let percent: number | null = null;
-  if (status !== undefined) {
-    let pages: number | null = null;
-    if (pagesRead !== undefined) {
-      pages = pagesRead;
-    }
-    let total: number | null = null;
-    if (totalPages !== undefined) {
-      total = totalPages;
-    }
-    percent = getProgressPercent(status, pages, total);
+  if (progressPercent !== undefined) {
+    percent = progressPercent;
   }
 
   // Phrase lue par VoiceOver pour toute la carte

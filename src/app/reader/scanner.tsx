@@ -1,16 +1,19 @@
 import { useRef, useState, type JSX } from 'react';
-import { ActivityIndicator, Alert, Linking, Pressable, StyleSheet, Text, Vibration, View } from 'react-native';
+import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, Vibration, View } from 'react-native';
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
 import { useIsFocused } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import BookPreviewModal from '../../components/BookPreviewModal';
-import { sampleBooks } from '../../data/sampleBooks';
-import { sampleFindByIsbn } from '../../data/sampleGoogleBooks';
+import PrimaryButton from '../../components/PrimaryButton';
+import { useLibrary } from '../../hooks/useLibrary';
+import { ApiError } from '../../services/api';
+import { findByIsbn } from '../../services/bookService';
 import { cameraColors } from '../../theme/colors';
 import { serifFont } from '../../theme/fonts';
 import { useThemeColors } from '../../theme/useThemeColors';
 import { GoogleBookResult } from '../../types/book';
+import { getErrorMessage } from '../../utils/getErrorMessage';
 
 // scanning : caméra active ; searching : recherche du livre ; notFound : message + bouton pour recommencer
 type ScanState = 'scanning' | 'searching' | 'notFound';
@@ -33,13 +36,12 @@ export default function ScannerScreen(): JSX.Element {
   const [message, setMessage] = useState('');
   const [foundBook, setFoundBook] = useState<GoogleBookResult | null>(null);
   const [isTorchOn, setIsTorchOn] = useState(false);
-  // PROVISOIRE : google_id des livres de la PAL (sera chargé par GET /api/books)
-  const [libraryIds, setLibraryIds] = useState<string[]>(sampleBooks.map((book) => book.google_id));
+  const library = useLibrary(); // PAL : savoir si un livre y est, l'ajouter, le retirer
 
   // Bloque tout de suite les lectures en double (la caméra lit le même code plusieurs fois par seconde)
   const isHandlingScan = useRef(false);
 
-  function handleBarcodeScanned(result: BarcodeScanningResult): void {
+  async function handleBarcodeScanned(result: BarcodeScanningResult): Promise<void> {
     if (isHandlingScan.current) {
       return;
     }
@@ -54,14 +56,17 @@ export default function ScannerScreen(): JSX.Element {
     }
 
     setScanState('searching');
-    // PROVISOIRE : sera remplacé par GET /api/google/isbn/:isbn
-    const book = sampleFindByIsbn(code);
-    if (book === null) {
-      setMessage('Aucun livre trouvé pour le code ' + code + '.');
+    try {
+      // GET /api/google/isbn/:isbn
+      setFoundBook(await findByIsbn(code));
+    } catch (error) {
+      let text = getErrorMessage(error, 'La recherche est indisponible, réessaie plus tard.');
+      if (error instanceof ApiError && error.status === 404) {
+        text = 'Aucun livre trouvé pour le code ' + code + '.';
+      }
+      setMessage(text);
       setScanState('notFound');
-      return;
     }
-    setFoundBook(book);
   }
 
   // Remet la caméra en lecture
@@ -70,24 +75,6 @@ export default function ScannerScreen(): JSX.Element {
     setMessage('');
     setScanState('scanning');
     isHandlingScan.current = false;
-  }
-
-  function addToLibrary(book: GoogleBookResult): void {
-    // PROVISOIRE : POST /api/books
-    setLibraryIds(libraryIds.concat([book.google_id]));
-  }
-
-  // Confirmation obligatoire : les sessions du livre sont aussi supprimées
-  function removeFromLibrary(book: GoogleBookResult): void {
-    Alert.alert('Retirer « ' + book.title + ' » de ta PAL ?', 'Ses sessions de lecture seront aussi supprimées.', [
-      { text: 'Annuler', style: 'cancel' },
-      {
-        text: 'Retirer',
-        style: 'destructive',
-        // PROVISOIRE : DELETE /api/books/:id
-        onPress: () => setLibraryIds(libraryIds.filter((id) => id !== book.google_id)),
-      },
-    ]);
   }
 
   // Autorisation pas encore connue
@@ -118,14 +105,9 @@ export default function ScannerScreen(): JSX.Element {
         <Text style={[styles.permissionText, { color: colors.textSecondary }]}>
           Autorise la caméra pour scanner le code-barres au dos de tes livres et les ajouter à ta PAL.
         </Text>
-        <Pressable
-          onPress={onPress}
-          accessibilityRole="button"
-          accessibilityLabel={buttonLabel}
-          style={[styles.permissionButton, { backgroundColor: colors.primary }]}
-        >
-          <Text style={[styles.permissionButtonText, { color: colors.onPrimary }]}>{buttonLabel}</Text>
-        </Pressable>
+        <View style={styles.permissionButton}>
+          <PrimaryButton label={buttonLabel} onPress={onPress} />
+        </View>
       </View>
     );
   }
@@ -138,7 +120,9 @@ export default function ScannerScreen(): JSX.Element {
   // Lecture seulement quand on attend un code (pas pendant une recherche ni avec la fiche ouverte)
   let onScanned: ((result: BarcodeScanningResult) => void) | undefined = undefined;
   if (scanState === 'scanning' && foundBook === null) {
-    onScanned = handleBarcodeScanned;
+    onScanned = (result) => {
+      void handleBarcodeScanned(result);
+    };
   }
 
   let torchLabel = 'Allumer la lampe';
@@ -187,14 +171,9 @@ export default function ScannerScreen(): JSX.Element {
           <Text style={[styles.notFoundText, { color: colors.text }]} accessibilityRole="alert">
             {message}
           </Text>
-          <Pressable
-            onPress={scanAgain}
-            accessibilityRole="button"
-            accessibilityLabel="Scanner un autre livre"
-            style={[styles.scanAgainButton, { backgroundColor: colors.primary }]}
-          >
-            <Text style={[styles.scanAgainText, { color: colors.onPrimary }]}>Scanner un autre livre</Text>
-          </Pressable>
+          <View style={styles.scanAgainButton}>
+            <PrimaryButton label="Scanner un autre livre" onPress={scanAgain} />
+          </View>
         </View>
       )}
 
@@ -218,16 +197,16 @@ export default function ScannerScreen(): JSX.Element {
       {/* Fiche du livre trouvé (même modale que la recherche) */}
       <BookPreviewModal
         book={foundBook}
-        inLibrary={foundBook !== null && libraryIds.includes(foundBook.google_id)}
-        isAdding={false}
+        inLibrary={foundBook !== null && library.isInLibrary(foundBook.google_id)}
+        isAdding={foundBook !== null && library.addingId === foundBook.google_id}
         onAdd={() => {
           if (foundBook !== null) {
-            addToLibrary(foundBook);
+            void library.add(foundBook);
           }
         }}
         onRemove={() => {
           if (foundBook !== null) {
-            removeFromLibrary(foundBook);
+            library.confirmRemove(foundBook);
           }
         }}
         onClose={scanAgain}
@@ -259,15 +238,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   permissionButton: {
-    minHeight: 52,
-    paddingHorizontal: 28,
-    borderRadius: 26,
-    justifyContent: 'center',
     marginTop: 28,
-  },
-  permissionButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
   },
   topBubble: {
     position: 'absolute',
@@ -324,15 +295,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   scanAgainButton: {
-    minHeight: 48,
-    paddingHorizontal: 24,
-    borderRadius: 24,
-    justifyContent: 'center',
     marginTop: 16,
-  },
-  scanAgainText: {
-    fontSize: 15,
-    fontWeight: '700',
   },
   torchButton: {
     position: 'absolute',

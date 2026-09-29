@@ -20,6 +20,10 @@ export interface Book {
   status: BookStatus;
   added_at: string; // date au format texte dans le JSON
   pages_read: number | null; // plus haute page lue (sessions), null si aucune session
+  // Progression calculée par le backend (logique métier dans le controller)
+  progress_percent: number | null; // null si le nombre de pages est inconnu
+  current_page: number;
+  remaining_pages: number | null;
 }
 
 // Livre trouvé via Google, renvoyé par /api/google/search et /api/google/isbn

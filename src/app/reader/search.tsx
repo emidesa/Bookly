@@ -1,14 +1,17 @@
-import { useEffect, useState, type JSX } from 'react';
-import { ActivityIndicator, Alert, FlatList, Keyboard, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useCallback, useEffect, useState, type JSX } from 'react';
+import { ActivityIndicator, FlatList, Keyboard, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import BookPreviewModal from '../../components/BookPreviewModal';
+import ScreenHeader from '../../components/ScreenHeader';
 import SearchBookCard from '../../components/SearchBookCard';
-import { sampleBooks } from '../../data/sampleBooks';
-import { sampleSearch, sampleTrending } from '../../data/sampleGoogleBooks';
+import { useLibrary } from '../../hooks/useLibrary';
+import { getTrending, searchGoogle } from '../../services/bookService';
 import { serifFont } from '../../theme/fonts';
 import { useThemeColors } from '../../theme/useThemeColors';
-import { GoogleBookResult } from '../../types/book';
+import { GoogleBookResult, TrendingBook } from '../../types/book';
+import { getErrorMessage } from '../../utils/getErrorMessage';
 
 const MIN_LETTERS = 2; // en dessous, on affiche les recommandations
 const SEARCH_DELAY = 400; // ms après la dernière lettre tapée
@@ -22,10 +25,23 @@ export default function SearchScreen(): JSX.Element {
   const [results, setResults] = useState<GoogleBookResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [addingId, setAddingId] = useState<string | null>(null);
   const [previewBook, setPreviewBook] = useState<GoogleBookResult | null>(null); // livre affiché dans le résumé
-  // PROVISOIRE : google_id des livres de la PAL (sera chargé par GET /api/books)
-  const [libraryIds, setLibraryIds] = useState<string[]>(sampleBooks.map((book) => book.google_id));
+  const [trending, setTrending] = useState<TrendingBook[]>([]);
+  const library = useLibrary(); // PAL : savoir si un livre y est, l'ajouter, le retirer
+
+  // Tendances (GET /api/books/trending), rechargées à chaque affichage de l'onglet
+  useFocusEffect(
+    useCallback(() => {
+      async function loadTrending(): Promise<void> {
+        try {
+          setTrending(await getTrending());
+        } catch {
+          // Pas de tendances : la liste reste vide, la recherche fonctionne quand même
+        }
+      }
+      void loadTrending();
+    }, []),
+  );
 
   // Recherche pendant la frappe, 400 ms après la dernière lettre (« debounce ») :
   // une seule requête quand l'utilisateur fait une pause, pour ménager le quota Google
@@ -37,58 +53,52 @@ export default function SearchScreen(): JSX.Element {
       return;
     }
 
-    const timer = setTimeout(() => {
+    // Réponse périmée : si l'utilisateur a retapé entre-temps, on ignore l'ancienne réponse
+    let isOutdated = false;
+
+    const timer = setTimeout(async () => {
       setIsLoading(true);
       setErrorMessage(null);
-      // PROVISOIRE : sera remplacé par GET /api/google/search?q=...
-      setResults(sampleSearch(text));
-      setSearchedQuery(text);
-      setIsLoading(false);
+      try {
+        const books = await searchGoogle(text);
+        if (!isOutdated) {
+          setResults(books);
+          setSearchedQuery(text);
+        }
+      } catch (error) {
+        if (!isOutdated) {
+          setResults([]);
+          setErrorMessage(getErrorMessage(error, 'La recherche est indisponible, réessaie plus tard.'));
+          setSearchedQuery(text);
+        }
+      } finally {
+        if (!isOutdated) {
+          setIsLoading(false);
+        }
+      }
     }, SEARCH_DELAY);
 
-    // Une nouvelle lettre annule la recherche prévue
-    return () => clearTimeout(timer);
+    // Une nouvelle lettre annule la recherche prévue et rend la réponse en cours périmée
+    return () => {
+      clearTimeout(timer);
+      isOutdated = true;
+    };
   }, [query]);
 
   function clearSearch(): void {
     setQuery('');
   }
 
-  function addToLibrary(book: GoogleBookResult): void {
-    setAddingId(book.google_id);
-    // PROVISOIRE : POST /api/books ; en cas de 409, afficher « Ce livre est déjà dans ta PAL »
-    setLibraryIds(libraryIds.concat([book.google_id]));
-    setAddingId(null);
-  }
-
-  // Confirmation obligatoire : les sessions du livre sont aussi supprimées (ON DELETE CASCADE)
-  function removeFromLibrary(book: GoogleBookResult): void {
-    Alert.alert('Retirer « ' + book.title + ' » de ta PAL ?', 'Ses sessions de lecture seront aussi supprimées.', [
-      { text: 'Annuler', style: 'cancel' },
-      {
-        text: 'Retirer',
-        style: 'destructive',
-        onPress: () => {
-          // PROVISOIRE : DELETE /api/books/:id (id retrouvé dans la PAL grâce au google_id)
-          setLibraryIds(libraryIds.filter((id) => id !== book.google_id));
-        },
-      },
-    ]);
-  }
-
   // Résultats seulement si au moins 2 lettres ET une recherche déjà faite
   const isShowingResults = query.trim().length >= MIN_LETTERS && searchedQuery !== null;
-  let books: GoogleBookResult[] = sampleTrending;
+  let books: GoogleBookResult[] = trending;
   if (isShowingResults) {
     books = results;
   }
 
   const header = (
     <View>
-      <Text style={[styles.overline, { color: colors.textSecondary }]}>Explorer</Text>
-      <Text style={[styles.title, { color: colors.text }]} accessibilityRole="header">
-        Trouver un livre
-      </Text>
+      <ScreenHeader overline="Explorer" title="Trouver un livre" />
 
       {/* Champ de recherche : contour visible (WCAG 1.4.11, un champ vide n'a pas de texte) */}
       <View style={[styles.searchField, { backgroundColor: colors.surface, borderColor: colors.inputBorder }]}>
@@ -157,10 +167,10 @@ export default function SearchScreen(): JSX.Element {
           <SearchBookCard
             book={item}
             rank={isShowingResults ? undefined : index + 1}
-            inLibrary={libraryIds.includes(item.google_id)}
-            isAdding={addingId === item.google_id}
-            onAdd={() => addToLibrary(item)}
-            onRemove={() => removeFromLibrary(item)}
+            inLibrary={library.isInLibrary(item.google_id)}
+            isAdding={library.addingId === item.google_id}
+            onAdd={() => void library.add(item)}
+            onRemove={() => library.confirmRemove(item)}
             onOpen={() => setPreviewBook(item)}
           />
         )}
@@ -169,16 +179,16 @@ export default function SearchScreen(): JSX.Element {
       {/* Résumé du livre choisi (même liste PAL que les cartes) */}
       <BookPreviewModal
         book={previewBook}
-        inLibrary={previewBook !== null && libraryIds.includes(previewBook.google_id)}
-        isAdding={previewBook !== null && addingId === previewBook.google_id}
+        inLibrary={previewBook !== null && library.isInLibrary(previewBook.google_id)}
+        isAdding={previewBook !== null && library.addingId === previewBook.google_id}
         onAdd={() => {
           if (previewBook !== null) {
-            addToLibrary(previewBook);
+            void library.add(previewBook);
           }
         }}
         onRemove={() => {
           if (previewBook !== null) {
-            removeFromLibrary(previewBook);
+            library.confirmRemove(previewBook);
           }
         }}
         onClose={() => setPreviewBook(null)}
@@ -193,17 +203,6 @@ const styles = StyleSheet.create({
   },
   list: {
     paddingHorizontal: 20,
-  },
-  overline: {
-    fontSize: 17,
-    fontWeight: '500',
-  },
-  title: {
-    fontFamily: serifFont,
-    fontSize: 34,
-    fontWeight: '700',
-    marginTop: 4,
-    marginBottom: 24,
   },
   searchField: {
     flexDirection: 'row',
