@@ -1,5 +1,5 @@
 import { useState, type JSX } from 'react';
-import { ActionSheetIOS, Alert, FlatList, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -10,6 +10,7 @@ import { sampleUser } from '../../data/sampleUser';
 import { serifFont } from '../../theme/fonts';
 import { useThemeColors } from '../../theme/useThemeColors';
 import { Book, BookStatus } from '../../types/book';
+import { showOptionsMenu } from '../../utils/showOptionsMenu';
 
 type StatusFilter = BookStatus | 'all';
 type SortOption = 'recent' | 'title' | 'author';
@@ -73,34 +74,12 @@ export default function LibraryScreen(): JSX.Element {
   const firstName = sampleUser.first_name;
   const initial = firstName.charAt(0).toUpperCase();
 
-  // Menu de tri : feuille native sur iPhone, alerte sur Android
+  // Menu de tri natif (feuille sur iPhone, boîte de dialogue sur Android)
   function openSortMenu(): void {
-    const options: string[] = [];
-    for (const option of sortOptions) {
-      if (option === sort) {
-        options.push(sortLabels[option] + ' ✓');
-      } else {
-        options.push(sortLabels[option]);
-      }
-    }
-
-    if (Platform.OS === 'ios') {
-      ActionSheetIOS.showActionSheetWithOptions(
-        { title: 'Trier par', options: [...options, 'Annuler'], cancelButtonIndex: options.length },
-        (index) => {
-          if (index < sortOptions.length) {
-            setSort(sortOptions[index]);
-          }
-        },
-      );
-      return;
-    }
-
-    Alert.alert('Trier par', undefined, [
-      { text: options[0], onPress: () => setSort('recent') },
-      { text: options[1], onPress: () => setSort('title') },
-      { text: options[2], onPress: () => setSort('author') },
-    ], { cancelable: true });
+    const labels = sortOptions.map((option) => sortLabels[option]);
+    showOptionsMenu('Trier par', labels, sortOptions.indexOf(sort), (index) => {
+      setSort(sortOptions[index]);
+    });
   }
 
   const header = (
@@ -149,7 +128,7 @@ export default function LibraryScreen(): JSX.Element {
           accessibilityLabel={'Trier la liste, tri actuel : ' + sortLabels[sort]}
           style={[styles.sortButton, { backgroundColor: colors.surface, borderColor: colors.separator }]}
         >
-          <SymbolView name="line.3.horizontal.decrease" size={22} tintColor={colors.primary} />
+          <SymbolView name={{ ios: 'line.3.horizontal.decrease', android: 'filter_list' }} size={22} tintColor={colors.primary} />
         </Pressable>
       </View>
     </View>
