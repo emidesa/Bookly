@@ -3,6 +3,7 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } fr
 import { SymbolView } from 'expo-symbols';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { serifFont } from '../theme/fonts';
+import BookLogo from './BookLogo';
 import { useThemeColors } from '../theme/useThemeColors';
 
 interface AuthLayoutProps {
@@ -39,7 +40,7 @@ export default function AuthLayout({ title, subtitle, children }: AuthLayoutProp
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.logo} accessible accessibilityRole="image" accessibilityLabel="Bookly">
-            <SymbolView name={{ ios: 'books.vertical.fill', android: 'menu_book' }} size={28} tintColor={colors.primary} />
+            <BookLogo size={30} color={colors.primary} />
             <Text style={[styles.logoText, { color: colors.primary }]}>Bookly</Text>
           </View>
 
