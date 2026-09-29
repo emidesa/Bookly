@@ -14,6 +14,7 @@ export interface Book {
   description: string | null;
   status: BookStatus;
   added_at: Date;
+  pages_read: number | null; // calculé depuis les sessions (pas une colonne)
 }
 
 // Corps de POST /api/books : un livre trouvé via Google

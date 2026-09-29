@@ -83,11 +83,6 @@ export default function SearchScreen(): JSX.Element {
     books = results;
   }
 
-  let resultCountText = results.length + ' livres';
-  if (results.length <= 1) {
-    resultCountText = results.length + ' livre';
-  }
-
   const header = (
     <View>
       <Text style={[styles.overline, { color: colors.textSecondary }]}>Explorer</Text>
@@ -125,9 +120,6 @@ export default function SearchScreen(): JSX.Element {
       <View style={styles.sectionHeader}>
         <Text style={[styles.sectionTitle, { color: colors.text }]} accessibilityRole="header">
           {isShowingResults ? 'Résultats' : 'Recommandations'}
-        </Text>
-        <Text style={[styles.sectionNote, { color: colors.textSecondary }]}>
-          {isShowingResults ? resultCountText : 'Tendances Bookly'}
         </Text>
       </View>
 
@@ -251,9 +243,6 @@ const styles = StyleSheet.create({
     fontFamily: serifFont,
     fontSize: 24,
     fontWeight: '700',
-  },
-  sectionNote: {
-    fontSize: 15,
   },
   message: {
     flexDirection: 'row',

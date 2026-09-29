@@ -56,15 +56,21 @@ export async function create(req: Request<{}, {}, CreateBookBody>, res: Response
     res.status(400).json({ message: 'Informations du livre incomplètes' });
     return;
   }
-  if (author !== undefined && author !== null && typeof author !== 'string') {
+  // Longueurs maximales des colonnes (sinon MySQL refuse et renvoie une erreur 500)
+  if (google_id.length > 50 || title.length > 255) {
+    res.status(400).json({ message: 'Informations du livre trop longues' });
+    return;
+  }
+  if (author !== undefined && author !== null && (typeof author !== 'string' || author.length > 255)) {
     res.status(400).json({ message: 'Auteur invalide' });
     return;
   }
-  if (total_pages !== undefined && total_pages !== null && typeof total_pages !== 'number') {
+  // Nombre entier positif (pas -12 ni 3.7)
+  if (total_pages !== undefined && total_pages !== null && (!Number.isInteger(total_pages) || total_pages < 0)) {
     res.status(400).json({ message: 'Nombre de pages invalide' });
     return;
   }
-  if (cover_url !== undefined && cover_url !== null && typeof cover_url !== 'string') {
+  if (cover_url !== undefined && cover_url !== null && (typeof cover_url !== 'string' || cover_url.length > 500)) {
     res.status(400).json({ message: 'Couverture invalide' });
     return;
   }

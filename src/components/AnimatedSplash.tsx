@@ -29,6 +29,7 @@ function AnimatedBook({ delay, style, rotation }: { delay: number; style: ViewSt
       progress.value = withDelay(delay, withTiming(1, { duration: 400, easing: Easing.out(Easing.cubic) }));
     }
     // Une seule fois, à l'affichage
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const animatedStyle = useAnimatedStyle(() => {
@@ -71,6 +72,7 @@ export default function AnimatedSplash({ onFinish }: AnimatedSplashProps): JSX.E
     const timer = setTimeout(onFinish, TOTAL_DURATION);
     return () => clearTimeout(timer);
     // Une seule fois, à l'affichage (sinon le minuteur redémarre)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const gradientStyle = useAnimatedStyle(() => {

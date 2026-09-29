@@ -5,9 +5,15 @@ import { Book, BookStatus, CreateBookBody, TrendingBook } from '../types/book';
 type BookRow = Book & RowDataPacket;
 type TrendingBookRow = TrendingBook & RowDataPacket;
 
+// pages_read : plus haute page atteinte dans les sessions du livre (NULL si aucune session)
+const SELECT_BOOK_WITH_PROGRESS = `
+  SELECT books.*,
+    (SELECT MAX(reading_sessions.end_page) FROM reading_sessions WHERE reading_sessions.book_id = books.id) AS pages_read
+  FROM books`;
+
 export async function findAllByUser(userId: number): Promise<Book[]> {
   const [rows] = await pool.execute<BookRow[]>(
-    'SELECT * FROM books WHERE user_id = ? ORDER BY added_at DESC',
+    SELECT_BOOK_WITH_PROGRESS + ' WHERE books.user_id = ? ORDER BY books.added_at DESC',
     [userId],
   );
   return rows;
@@ -15,7 +21,7 @@ export async function findAllByUser(userId: number): Promise<Book[]> {
 
 export async function findByIdAndUser(id: number, userId: number): Promise<Book | null> {
   const [rows] = await pool.execute<BookRow[]>(
-    'SELECT * FROM books WHERE id = ? AND user_id = ?',
+    SELECT_BOOK_WITH_PROGRESS + ' WHERE books.id = ? AND books.user_id = ?',
     [id, userId],
   );
   return rows[0] ?? null;
