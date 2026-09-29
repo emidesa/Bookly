@@ -104,3 +104,12 @@ export const splashColors = {
   text: '#FFFFFF',
   tagline: '#EDE9F8',
 };
+
+// Scanner : la caméra est toujours sombre, quel que soit le thème
+export const cameraColors = {
+  background: '#000000', // derrière l'image de la caméra
+  overlay: 'rgba(15, 14, 26, 0.6)', // bulles de texte sur l'image
+  text: '#FFFFFF',
+  frame: '#FFFFFF', // cadre de visée
+  frameDetected: '#F2A541', // cadre quand un code est lu
+};

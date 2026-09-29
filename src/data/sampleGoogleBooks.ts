@@ -35,3 +35,20 @@ export function sampleSearch(query: string): GoogleBookResult[] {
     return book.title.toLowerCase().includes(text) || author.includes(text);
   });
 }
+
+// Remplacé par GET /api/google/isbn/:isbn (ISBN vérifié avec la vraie route Google)
+const sampleIsbns: Record<string, string> = {
+  '9782070612758': 'NFWzngEACAAJ', // Le petit prince (Folio)
+};
+
+export function sampleFindByIsbn(isbn: string): GoogleBookResult | null {
+  const googleId = sampleIsbns[isbn];
+  if (googleId === undefined) {
+    return null;
+  }
+  const book = searchPool.find((item) => item.google_id === googleId);
+  if (book === undefined) {
+    return null;
+  }
+  return book;
+}
