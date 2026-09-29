@@ -4,6 +4,7 @@ import authRoutes from "./routes/authRoutes";
 import googleRoutes from "./routes/googleRoutes";
 import bookRoutes from "./routes/bookRoutes";
 import adminRoutes from "./routes/adminRoutes";
+import readingSessionRoutes from "./routes/readingSessionRoutes";
 
 const app = express();
 
@@ -21,6 +22,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/google", googleRoutes);
 app.use("/api/books", bookRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api", readingSessionRoutes); // /api/books/:bookId/sessions et /api/sessions
 
 // Route inconnue
 app.use((_req: Request, res: Response) => {
