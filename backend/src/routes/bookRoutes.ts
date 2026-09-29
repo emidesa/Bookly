@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { create, getAll, getOne, remove, updateStatus } from '../controllers/bookController';
+import { create, getAll, getOne, getTrending, remove, updateStatus } from '../controllers/bookController';
 import { verifyToken } from '../middlewares/verifyToken';
 
 const router = Router();
@@ -8,6 +8,7 @@ const router = Router();
 router.use(verifyToken);
 
 router.get('/', getAll);
+router.get('/trending', getTrending); // avant /:id, sinon « trending » serait pris pour un id
 router.get('/:id', getOne);
 router.post('/', create);
 router.put('/:id', updateStatus);

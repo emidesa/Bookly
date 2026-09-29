@@ -29,6 +29,7 @@ export interface ThemeColors {
   tabBarBackground: string; // barre d'onglets si l'effet verre n'est pas disponible
   tabBarBorder: string;
   tabActiveBackground: string; // pastille de l'onglet actif
+  overlay: string; // fond assombri derrière une modale
 }
 
 // Contrastes vérifiés : WCAG AA (texte >= 4.5, contours >= 3)
@@ -61,6 +62,7 @@ export const lightColors: ThemeColors = {
   tabBarBackground: 'rgba(250, 247, 242, 0.92)', // Figma : nav bar glassy
   tabBarBorder: 'rgba(61, 44, 141, 0.08)',
   tabActiveBackground: '#FFFFFF',
+  overlay: 'rgba(26, 26, 46, 0.45)',
 };
 
 export const darkColors: ThemeColors = {
@@ -92,6 +94,7 @@ export const darkColors: ThemeColors = {
   tabBarBackground: 'rgba(28, 26, 46, 0.92)',
   tabBarBorder: 'rgba(179, 166, 242, 0.12)',
   tabActiveBackground: '#252340',
+  overlay: 'rgba(0, 0, 0, 0.6)',
 };
 
 // Splashscreen : identique en clair et en sombre

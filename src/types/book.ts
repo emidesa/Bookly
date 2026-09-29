@@ -16,6 +16,7 @@ export interface Book {
   author: string | null;
   total_pages: number | null;
   cover_url: string | null;
+  description: string | null; // résumé (null si Google n'en a pas)
   status: BookStatus;
   added_at: string; // date au format texte dans le JSON
   pages_read: number | null; // plus haute page lue (sessions), null si aucune session
@@ -28,4 +29,10 @@ export interface GoogleBookResult {
   author: string | null;
   total_pages: number | null;
   cover_url: string | null;
+  description: string | null;
+}
+
+// Livre populaire, renvoyé par /api/books/trending (readers = nombre de PAL)
+export interface TrendingBook extends GoogleBookResult {
+  readers: number;
 }

@@ -17,6 +17,25 @@ async function fetchVolumes(q: string, maxResults: number): Promise<GoogleVolume
   return data.items ?? [];
 }
 
+// Google renvoie parfois du HTML (<p>, <br>, &quot;...) : on garde du texte simple
+function cleanDescription(description: string | undefined): string | null {
+  if (description === undefined) {
+    return null;
+  }
+  let text = description;
+  text = text.replace(/<br\s*\/?>/gi, '\n'); // retour à la ligne
+  text = text.replace(/<\/p>/gi, '\n'); // fin de paragraphe
+  text = text.replace(/<[^>]*>/g, ''); // toutes les autres balises
+  text = text.replace(/&quot;/g, '"');
+  text = text.replace(/&#39;/g, "'");
+  text = text.replace(/&amp;/g, '&');
+  text = text.trim();
+  if (text === '') {
+    return null;
+  }
+  return text;
+}
+
 function toGoogleBookResult({ id, volumeInfo }: GoogleVolume): GoogleBookResult {
   return {
     google_id: id,
@@ -25,6 +44,7 @@ function toGoogleBookResult({ id, volumeInfo }: GoogleVolume): GoogleBookResult 
     total_pages: volumeInfo.pageCount ?? null,
     // iOS bloque les images en http, thumbnail = image en miniature
     cover_url: volumeInfo.imageLinks?.thumbnail?.replace('http://', 'https://') ?? null,
+    description: cleanDescription(volumeInfo.description),
   };
 }
 
