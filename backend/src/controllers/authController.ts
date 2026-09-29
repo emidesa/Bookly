@@ -1,9 +1,15 @@
 import type { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+import { JWT_EXPIRES_IN, JWT_SECRET } from '../config/jwt';
 import * as User from '../models/User';
+import type { JwtPayload, PublicUser } from '../types/user';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const SALT_ROUNDS = 10;
+
+// Faux hash comparé quand l'email est inconnu : même temps de réponse
+const DUMMY_HASH = bcrypt.hashSync('dummy-password', SALT_ROUNDS);
 
 // Vérifie les critères du mot de passe ; renvoie un message d'erreur ou null
 function checkPassword(password: string): string | null {
@@ -64,4 +70,33 @@ export async function register(req: Request, res: Response): Promise<void> {
     }
     throw error;
   }
+}
+
+// POST /auth/login : renvoie un token et l'utilisateur
+export async function login(req: Request, res: Response): Promise<void> {
+  const { email, password }: { email?: unknown; password?: unknown } = req.body ?? {};
+
+  if (typeof email !== 'string' || typeof password !== 'string') {
+    res.status(400).json({ message: 'Email et mot de passe requis' });
+    return;
+  }
+
+  const user = await User.findByEmail(email.trim().toLowerCase());
+
+  // Toujours un bcrypt.compare, même si l'email est inconnu (attaque temporelle)
+  const isValid = await bcrypt.compare(password, user?.password ?? DUMMY_HASH);
+
+  // Même message dans les deux cas (énumération de comptes)
+  if (!user || !isValid) {
+    res.status(401).json({ message: 'Identifiants incorrects' });
+    return;
+  }
+
+  const payload: JwtPayload = { id: user.id, role: user.role };
+  const token = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+
+  const { password: _password, ...publicUser } = user;
+  const userResponse: PublicUser = publicUser;
+
+  res.json({ token, user: userResponse });
 }
