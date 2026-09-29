@@ -16,6 +16,7 @@ export interface ThemeColors {
   separator: string; // séparateurs décoratifs uniquement
   inputBorder: string; // contour des champs (contraste >= 3)
   error: string;
+  errorSoft: string; // fond du bouton supprimer
   // Badges de statut (fond + texte)
   badgeToReadBackground: string;
   badgeToReadText: string;
@@ -48,6 +49,7 @@ export const lightColors: ThemeColors = {
   separator: '#E8E4DE',
   inputBorder: '#8E8A9E',
   error: '#B3261E',
+  errorSoft: '#FBE9E9',
   badgeToReadBackground: '#F0EBE3',
   badgeToReadText: '#1A1A2E',
   badgeReadingBackground: '#FEF3DC',
@@ -78,6 +80,7 @@ export const darkColors: ThemeColors = {
   separator: '#2E2B45',
   inputBorder: '#6E6B8C',
   error: '#F2B8B5',
+  errorSoft: '#3A1F24',
   badgeToReadBackground: '#252340',
   badgeToReadText: '#F0EBE3',
   badgeReadingBackground: '#3A2E1A',

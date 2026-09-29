@@ -4,10 +4,11 @@ import { useThemeColors } from '../theme/useThemeColors';
 
 interface ProgressBarProps {
   percent: number; // de 0 à 100
+  showPercent?: boolean; // pourcentage à droite (oui par défaut)
 }
 
-// Barre de progression de lecture avec le pourcentage à droite
-export default function ProgressBar({ percent }: ProgressBarProps): JSX.Element {
+// Barre de progression de lecture
+export default function ProgressBar({ percent, showPercent = true }: ProgressBarProps): JSX.Element {
   const colors = useThemeColors();
 
   return (
@@ -21,7 +22,7 @@ export default function ProgressBar({ percent }: ProgressBarProps): JSX.Element 
       <View style={[styles.track, { backgroundColor: colors.progressTrack }]}>
         <View style={[styles.fill, { width: `${percent}%`, backgroundColor: colors.primary }]} />
       </View>
-      <Text style={[styles.percent, { color: colors.textSecondary }]}>{percent + ' %'}</Text>
+      {showPercent && <Text style={[styles.percent, { color: colors.textSecondary }]}>{percent + ' %'}</Text>}
     </View>
   );
 }
