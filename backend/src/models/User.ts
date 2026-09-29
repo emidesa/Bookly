@@ -30,6 +30,15 @@ export async function create(email: string, firstName: string, hashedPassword: s
   return result.insertId;
 }
 
+// Modifie l'email et le prénom ; renvoie false si l'utilisateur n'existe pas
+export async function updateProfile(id: number, email: string, firstName: string): Promise<boolean> {
+  const [result] = await pool.execute<ResultSetHeader>(
+    'UPDATE users SET email = ?, first_name = ? WHERE id = ?',
+    [email, firstName, id],
+  );
+  return result.affectedRows > 0;
+}
+
 // Liste tous les utilisateurs, sans mot de passe (admin)
 export async function findAll(): Promise<PublicUser[]> {
   const [rows] = await pool.execute<PublicUserRow[]>(

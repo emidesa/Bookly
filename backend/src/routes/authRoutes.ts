@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { login, me, register } from '../controllers/authController';
+import { login, me, register, updateMe } from '../controllers/authController';
 import { verifyToken } from '../middlewares/verifyToken';
 
 const router = Router();
@@ -8,7 +8,8 @@ const router = Router();
 router.post('/register', register);
 router.post('/login', login);
 
-// Connecté : verifyToken sur cette route uniquement
+// Connecté : verifyToken sur ces routes uniquement
 router.get('/me', verifyToken, me);
+router.put('/me', verifyToken, updateMe);
 
 export default router;

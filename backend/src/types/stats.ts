@@ -9,3 +9,9 @@ export interface AdminStats {
   total_pages_read: number;
   total_reading_minutes: number;
 }
+
+// Statistiques de l'utilisateur connecté (écran Profil)
+export interface UserStats {
+  books_read: number;
+  pages_read: number;
+}

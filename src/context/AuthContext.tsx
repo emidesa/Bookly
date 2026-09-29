@@ -12,7 +12,7 @@ import {
 import { Alert } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { api, ApiError, setAuthToken, setUnauthorizedHandler } from '../services/api';
-import type { AuthResponse, LoginBody, RegisterBody, User } from '../types/user';
+import type { AuthResponse, LoginBody, RegisterBody, UpdateProfileBody, User } from '../types/user';
 
 const TOKEN_KEY = 'bookly_token';
 
@@ -26,6 +26,7 @@ interface AuthContextValue {
   register: (body: RegisterBody) => Promise<void>;
   logout: () => Promise<void>;
   retry: () => Promise<void>;
+  updateProfile: (body: UpdateProfileBody) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -134,6 +135,15 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
     [login],
   );
 
+  // Modification du profil : le serveur renvoie un token et un utilisateur à jour
+  const updateProfile = useCallback(
+    async (body: UpdateProfileBody): Promise<void> => {
+      const response = await api.put<AuthResponse>('/auth/me', body);
+      await saveSession(response);
+    },
+    [saveSession],
+  );
+
   // Bouton « Réessayer » quand le serveur était injoignable
   const retry = useCallback(async (): Promise<void> => {
     setStatus('loading');
@@ -141,8 +151,8 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
   }, [validateToken]);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ status, user, login, register, logout: clearSession, retry }),
-    [status, user, login, register, clearSession, retry],
+    () => ({ status, user, login, register, logout: clearSession, retry, updateProfile }),
+    [status, user, login, register, clearSession, retry, updateProfile],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
