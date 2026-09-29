@@ -16,6 +16,18 @@ export interface ThemeColors {
   separator: string; // séparateurs décoratifs uniquement
   inputBorder: string; // contour des champs (contraste >= 3)
   error: string;
+  // Badges de statut (fond + texte)
+  badgeToReadBackground: string;
+  badgeToReadText: string;
+  badgeReadingBackground: string;
+  badgeReadingText: string;
+  badgeReadBackground: string;
+  badgeReadText: string;
+  progressTrack: string; // fond de la barre de progression
+  shadow: string; // ombre des couvertures
+  tabBarBackground: string; // barre d'onglets si l'effet verre n'est pas disponible
+  tabBarBorder: string;
+  tabActiveBackground: string; // pastille de l'onglet actif
 }
 
 // Contrastes vérifiés : WCAG AA (texte >= 4.5, contours >= 3)
@@ -36,6 +48,17 @@ export const lightColors: ThemeColors = {
   separator: '#E8E4DE',
   inputBorder: '#8E8A9E',
   error: '#B3261E',
+  badgeToReadBackground: '#F0EBE3',
+  badgeToReadText: '#1A1A2E',
+  badgeReadingBackground: '#FEF3DC',
+  badgeReadingText: '#9A5F0E',
+  badgeReadBackground: '#E3F1E7',
+  badgeReadText: '#2F6B45',
+  progressTrack: '#E8E4DE',
+  shadow: '#1A1A2E',
+  tabBarBackground: 'rgba(250, 247, 242, 0.92)', // Figma : nav bar glassy
+  tabBarBorder: 'rgba(61, 44, 141, 0.08)',
+  tabActiveBackground: '#FFFFFF',
 };
 
 export const darkColors: ThemeColors = {
@@ -55,6 +78,17 @@ export const darkColors: ThemeColors = {
   separator: '#2E2B45',
   inputBorder: '#6E6B8C',
   error: '#F2B8B5',
+  badgeToReadBackground: '#252340',
+  badgeToReadText: '#F0EBE3',
+  badgeReadingBackground: '#3A2E1A',
+  badgeReadingText: '#F2A541',
+  badgeReadBackground: '#1F3328',
+  badgeReadText: '#8FD4A6',
+  progressTrack: '#2E2B45',
+  shadow: '#000000',
+  tabBarBackground: 'rgba(28, 26, 46, 0.92)',
+  tabBarBorder: 'rgba(179, 166, 242, 0.12)',
+  tabActiveBackground: '#252340',
 };
 
 // Splashscreen : identique en clair et en sombre

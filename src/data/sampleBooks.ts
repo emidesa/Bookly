@@ -1,0 +1,81 @@
+import { Book } from '../types/book';
+
+// PROVISOIRE : à supprimer quand l'API sera branchée (api.ts)
+function coverUrl(googleId: string): string {
+  return 'https://books.google.com/books/content?id=' + googleId + '&printsec=frontcover&img=1&zoom=1&source=gbs_api';
+}
+
+export const sampleBooks: Book[] = [
+  {
+    id: 1,
+    user_id: 1,
+    google_id: 'NFWzngEACAAJ',
+    title: 'Le petit prince',
+    author: 'Antoine de Saint-Exupéry',
+    total_pages: 113,
+    cover_url: coverUrl('NFWzngEACAAJ'),
+    status: 'read',
+    added_at: '2026-09-01T10:00:00.000Z',
+    pages_read: 113,
+  },
+  {
+    id: 2,
+    user_id: 1,
+    google_id: 'I_ApAQAAMAAJ',
+    title: "Harry Potter à l'école des sorciers",
+    author: 'J. K. Rowling',
+    total_pages: 326,
+    cover_url: coverUrl('I_ApAQAAMAAJ'),
+    status: 'reading',
+    added_at: '2026-09-10T10:00:00.000Z',
+    pages_read: 209,
+  },
+  {
+    id: 3,
+    user_id: 1,
+    google_id: '6fBjvgAACAAJ',
+    title: 'Harry Potter et les Reliques de la Mort',
+    author: 'Joanne Kathleen Rowling',
+    total_pages: 816,
+    cover_url: coverUrl('6fBjvgAACAAJ'),
+    status: 'to_read',
+    added_at: '2026-09-20T10:00:00.000Z',
+    pages_read: null,
+  },
+  {
+    id: 4,
+    user_id: 1,
+    google_id: 'YoVZxxIVvnQC',
+    title: 'Harry Potter et le Prince de Sang-Mêlé',
+    author: 'J.K. Rowling',
+    total_pages: 752,
+    cover_url: coverUrl('YoVZxxIVvnQC'),
+    status: 'to_read',
+    added_at: '2026-09-15T10:00:00.000Z',
+    pages_read: null,
+  },
+  {
+    id: 5,
+    user_id: 1,
+    google_id: 'sample-no-cover',
+    title: 'Belle du Seigneur',
+    author: 'Albert Cohen',
+    total_pages: 1110,
+    cover_url: null,
+    status: 'reading',
+    added_at: '2026-08-25T10:00:00.000Z',
+    pages_read: 320,
+  },
+  {
+    id: 6,
+    user_id: 1,
+    google_id: 'sample-no-author',
+    title: 'Contes populaires',
+    author: null,
+    total_pages: null,
+    cover_url: null,
+    status: 'to_read',
+    added_at: '2026-09-25T10:00:00.000Z',
+    pages_read: null,
+  },
+];
