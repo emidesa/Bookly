@@ -17,6 +17,13 @@ export interface Book {
   pages_read: number | null; // calculé depuis les sessions (pas une colonne)
 }
 
+// Livre renvoyé au client : colonnes + progression calculée par le controller (logique métier)
+export interface BookWithProgress extends Book {
+  progress_percent: number | null; // null si le nombre de pages est inconnu
+  current_page: number;
+  remaining_pages: number | null; // null si le nombre de pages est inconnu
+}
+
 // Corps de POST /api/books : un livre trouvé via Google
 export type CreateBookBody = GoogleBookResult;
 

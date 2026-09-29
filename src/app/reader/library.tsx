@@ -1,78 +1,79 @@
-import { useState, type JSX } from 'react';
-import { FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { router } from 'expo-router';
+import { useCallback, useState, type JSX } from 'react';
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import BookCard from '../../components/BookCard';
+import EmptyState from '../../components/EmptyState';
 import FilterChip from '../../components/FilterChip';
-import { sampleBooks } from '../../data/sampleBooks';
-import { sampleUser } from '../../data/sampleUser';
-import { serifFont } from '../../theme/fonts';
+import ScreenHeader from '../../components/ScreenHeader';
+import { useAuth } from '../../context/AuthContext';
+import { getBooks } from '../../services/bookService';
 import { useThemeColors } from '../../theme/useThemeColors';
-import { Book, BookStatus } from '../../types/book';
+import { Book } from '../../types/book';
+import { getErrorMessage } from '../../utils/getErrorMessage';
 import { showOptionsMenu } from '../../utils/showOptionsMenu';
-
-type StatusFilter = BookStatus | 'all';
-type SortOption = 'recent' | 'title' | 'author';
-
-const statusFilters: StatusFilter[] = ['all', 'to_read', 'reading', 'read'];
-const sortOptions: SortOption[] = ['recent', 'title', 'author'];
-
-// Libellés des filtres (au pluriel : « Lus »)
-const filterLabels: Record<StatusFilter, string> = {
-  all: 'Tous',
-  to_read: 'À lire',
-  reading: 'En cours',
-  read: 'Lus',
-};
-
-const sortLabels: Record<SortOption, string> = {
-  recent: 'Récents',
-  title: 'Titre',
-  author: 'Auteur',
-};
-
-// Filtre par statut puis trie la PAL (fait dans l'appli, sans appel à l'API)
-function getVisibleBooks(books: Book[], filter: StatusFilter, sort: SortOption): Book[] {
-  let result = books;
-
-  if (filter !== 'all') {
-    result = books.filter((book) => book.status === filter);
-  }
-
-  // sort() modifie le tableau : on trie une copie
-  const sorted = result.slice();
-
-  if (sort === 'title') {
-    sorted.sort((a, b) => a.title.localeCompare(b.title, 'fr'));
-  }
-  if (sort === 'author') {
-    sorted.sort((a, b) => {
-      const authorA = a.author === null ? '' : a.author;
-      const authorB = b.author === null ? '' : b.author;
-      return authorA.localeCompare(authorB, 'fr');
-    });
-  }
-  if (sort === 'recent') {
-    sorted.sort((a, b) => new Date(b.added_at).getTime() - new Date(a.added_at).getTime());
-  }
-
-  return sorted;
-}
+import {
+  filterLabels,
+  getVisibleBooks,
+  sortLabels,
+  sortOptions,
+  statusFilters,
+  type SortOption,
+  type StatusFilter,
+} from '../../utils/sortBooks';
 
 export default function LibraryScreen(): JSX.Element {
   const colors = useThemeColors();
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
   const [filter, setFilter] = useState<StatusFilter>('all');
   const [sort, setSort] = useState<SortOption>('recent');
 
-  // PROVISOIRE : sampleBooks sera remplacé par l'appel à GET /api/books
-  const books = sampleBooks;
+  const [books, setBooks] = useState<Book[]>([]);
+  const [isLoading, setIsLoading] = useState(true); // premier chargement
+  const [isRefreshing, setIsRefreshing] = useState(false); // tirer vers le bas
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // GET /api/books
+  const loadBooks = useCallback(async (): Promise<void> => {
+    try {
+      setBooks(await getBooks());
+      setErrorMessage(null);
+    } catch (error) {
+      setErrorMessage(getErrorMessage(error, 'Impossible de charger ta PAL.'));
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Rechargée à chaque retour sur l'onglet (livre ajouté depuis la recherche, statut modifié...)
+  useFocusEffect(
+    useCallback(() => {
+      void loadBooks();
+    }, [loadBooks]),
+  );
+
+  async function refresh(): Promise<void> {
+    setIsRefreshing(true);
+    await loadBooks();
+    setIsRefreshing(false);
+  }
+
+  function retry(): void {
+    setIsLoading(true);
+    void loadBooks();
+  }
+
   const visibleBooks = getVisibleBooks(books, filter, sort);
 
-  // PROVISOIRE : prénom de l'utilisateur connecté (AuthContext)
-  const firstName = sampleUser.first_name;
-  const initial = firstName.charAt(0).toUpperCase();
+  // Prénom de l'utilisateur connecté
+  let greeting = 'Bonjour';
+  let initial = '?';
+  if (user !== null && user.first_name !== '') {
+    greeting = 'Bonjour, ' + user.first_name;
+    initial = user.first_name.charAt(0).toUpperCase();
+  }
 
   // Menu de tri natif (feuille sur iPhone, boîte de dialogue sur Android)
   function openSortMenu(): void {
@@ -84,22 +85,20 @@ export default function LibraryScreen(): JSX.Element {
 
   const header = (
     <View>
-      <View style={styles.topRow}>
-        <View style={styles.titles}>
-          <Text style={[styles.greeting, { color: colors.textSecondary }]}>{'Bonjour, ' + firstName}</Text>
-          <Text style={[styles.title, { color: colors.text }]} accessibilityRole="header">
-            Ma pile à lire
-          </Text>
-        </View>
-        <Pressable
-          onPress={() => router.push('/reader/profile')}
-          accessibilityRole="button"
-          accessibilityLabel="Mon profil"
-          style={[styles.avatar, { backgroundColor: colors.primarySoft, borderColor: colors.surface }]}
-        >
-          <Text style={[styles.avatarText, { color: colors.primary }]}>{initial}</Text>
-        </Pressable>
-      </View>
+      <ScreenHeader
+        overline={greeting}
+        title="Ma pile à lire"
+        right={
+          <Pressable
+            onPress={() => router.push('/reader/profile')}
+            accessibilityRole="button"
+            accessibilityLabel="Mon profil"
+            style={[styles.avatar, { backgroundColor: colors.primarySoft, borderColor: colors.surface }]}
+          >
+            <Text style={[styles.avatarText, { color: colors.primary }]}>{initial}</Text>
+          </Pressable>
+        }
+      />
 
       <View style={styles.filterRow}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chips}>
@@ -134,6 +133,24 @@ export default function LibraryScreen(): JSX.Element {
     </View>
   );
 
+  // Liste vide : chargement, erreur, PAL vide ou filtre sans résultat
+  let emptyContent: JSX.Element;
+  if (isLoading) {
+    emptyContent = <ActivityIndicator style={styles.loader} color={colors.primary} accessibilityLabel="Chargement de ta PAL" />;
+  } else if (errorMessage !== null) {
+    emptyContent = <EmptyState message={errorMessage} isError={true} buttonLabel="Réessayer" onPress={retry} />;
+  } else if (books.length === 0) {
+    emptyContent = (
+      <EmptyState
+        message="Ta PAL est vide. Ajoute ton premier livre !"
+        buttonLabel="Trouver un livre"
+        onPress={() => router.push('/reader/search')}
+      />
+    );
+  } else {
+    emptyContent = <EmptyState message="Aucun livre dans cette catégorie" />;
+  }
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <FlatList
@@ -141,8 +158,9 @@ export default function LibraryScreen(): JSX.Element {
         keyExtractor={(book) => String(book.id)}
         ListHeaderComponent={header}
         contentContainerStyle={[styles.list, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 110 }]}
-        ListEmptyComponent={
-          <Text style={[styles.empty, { color: colors.textSecondary }]}>Aucun livre dans cette catégorie</Text>
+        ListEmptyComponent={emptyContent}
+        refreshControl={
+          <RefreshControl refreshing={isRefreshing} onRefresh={() => void refresh()} tintColor={colors.primary} colors={[colors.primary]} />
         }
         renderItem={({ item }) => (
           <BookCard
@@ -150,8 +168,7 @@ export default function LibraryScreen(): JSX.Element {
             author={item.author}
             coverUrl={item.cover_url}
             status={item.status}
-            pagesRead={item.pages_read}
-            totalPages={item.total_pages}
+            progressPercent={item.progress_percent}
             onPress={() => router.push({ pathname: '/reader/book/[id]', params: { id: String(item.id) } })}
           />
         )}
@@ -166,24 +183,6 @@ const styles = StyleSheet.create({
   },
   list: {
     paddingHorizontal: 20,
-  },
-  topRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  titles: {
-    flex: 1,
-  },
-  greeting: {
-    fontSize: 17,
-    fontWeight: '500',
-  },
-  title: {
-    fontFamily: serifFont,
-    fontSize: 34,
-    fontWeight: '700',
-    marginTop: 4,
   },
   avatar: {
     width: 64,
@@ -214,9 +213,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginLeft: 8,
   },
-  empty: {
-    fontSize: 15,
-    textAlign: 'center',
+  loader: {
     marginTop: 32,
   },
 });
