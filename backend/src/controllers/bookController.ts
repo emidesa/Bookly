@@ -38,9 +38,23 @@ export async function getOne(req: Request<{ id: string }>, res: Response): Promi
 
 // POST /api/books
 export async function create(req: Request<{}, {}, CreateBookBody>, res: Response): Promise<void> {
-  const { google_id, title, author, total_pages, cover_url } = req.body;
-  if (!google_id || !title) {
+  const { google_id, title, author, total_pages, cover_url } = req.body ?? {};
+
+  // Le body vient du client : on vérifie le vrai type de chaque champ
+  if (typeof google_id !== 'string' || google_id.trim() === '' || typeof title !== 'string' || title.trim() === '') {
     res.status(400).json({ message: 'Informations du livre incomplètes' });
+    return;
+  }
+  if (author !== undefined && author !== null && typeof author !== 'string') {
+    res.status(400).json({ message: 'Auteur invalide' });
+    return;
+  }
+  if (total_pages !== undefined && total_pages !== null && typeof total_pages !== 'number') {
+    res.status(400).json({ message: 'Nombre de pages invalide' });
+    return;
+  }
+  if (cover_url !== undefined && cover_url !== null && typeof cover_url !== 'string') {
+    res.status(400).json({ message: 'Couverture invalide' });
     return;
   }
 
@@ -69,8 +83,8 @@ export async function create(req: Request<{}, {}, CreateBookBody>, res: Response
 // PUT /api/books/:id
 export async function updateStatus(req: Request<{ id: string }, {}, { status: BookStatus }>, res: Response): Promise<void> {
   const id = Number(req.params.id);
-  const { status } = req.body;
-  if (!Number.isInteger(id) || !statusList.includes(status)) {
+  const { status } = req.body ?? {};
+  if (!Number.isInteger(id) || typeof status !== 'string' || !statusList.includes(status)) {
     res.status(400).json({ message: 'Statut invalide' });
     return;
   }
