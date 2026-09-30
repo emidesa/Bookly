@@ -5,7 +5,7 @@ import { useThemeColors } from '../theme/useThemeColors';
 
 interface FormFieldProps extends Omit<TextInputProps, 'style'> {
   label: string;
-  icon: { ios: SFSymbol; android: AndroidSymbol };
+  icon?: { ios: SFSymbol; android: AndroidSymbol }; // facultative (ex. commentaire)
   hint?: string; // aide affichée sous le champ (ex. règles du mot de passe)
   ref?: Ref<TextInput>;
 }
@@ -23,11 +23,19 @@ export default function FormField({ label, icon, hint, ref, onFocus, onBlur, ...
   return (
     <View style={styles.field}>
       <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
-      <View style={[styles.inputRow, { backgroundColor: colors.surface, borderColor: borderColor }]}>
+      <View
+        style={[
+          styles.inputRow,
+          inputProps.multiline && styles.inputRowMultiline,
+          { backgroundColor: colors.surface, borderColor: borderColor },
+        ]}
+      >
         {/* Icône décorative : le libellé suffit aux lecteurs d'écran */}
-        <View accessible={false} importantForAccessibility="no-hide-descendants">
-          <SymbolView name={icon} size={20} tintColor={colors.textSecondary} />
-        </View>
+        {icon ? (
+          <View accessible={false} importantForAccessibility="no-hide-descendants">
+            <SymbolView name={icon} size={20} tintColor={colors.textSecondary} />
+          </View>
+        ) : null}
         <TextInput
           ref={ref}
           {...inputProps}
@@ -42,7 +50,7 @@ export default function FormField({ label, icon, hint, ref, onFocus, onBlur, ...
             setIsFocused(false);
             onBlur?.(event);
           }}
-          style={[styles.input, { color: colors.text }]}
+          style={[styles.input, inputProps.multiline && styles.inputMultiline, { color: colors.text }]}
         />
       </View>
       {hint ? <Text style={[styles.hint, { color: colors.textSecondary }]}>{hint}</Text> : null}
@@ -72,6 +80,13 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     paddingVertical: 12,
+  },
+  inputRowMultiline: {
+    alignItems: 'flex-start',
+  },
+  inputMultiline: {
+    minHeight: 96,
+    textAlignVertical: 'top', // Android : texte en haut du champ
   },
   hint: {
     fontSize: 13,
