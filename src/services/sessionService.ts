@@ -6,6 +6,11 @@ export function getSessions(bookId: number): Promise<ReadingSession[]> {
   return api.get<ReadingSession[]>('/books/' + bookId + '/sessions');
 }
 
+// Une session (formulaire de modification)
+export function getSession(id: number): Promise<ReadingSession> {
+  return api.get<ReadingSession>('/sessions/' + id);
+}
+
 // Le statut du livre est mis à jour par le serveur (à lire → en cours → lu)
 export function createSession(session: CreateSessionBody): Promise<ReadingSession> {
   return api.post<ReadingSession>('/sessions', session);

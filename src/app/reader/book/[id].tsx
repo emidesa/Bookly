@@ -175,7 +175,16 @@ export default function BookDetailScreen(): JSX.Element {
           <Text style={[styles.noSession, { color: colors.textSecondary }]}>Aucune session pour le moment</Text>
         )}
         {sessions.map((session) => (
-          <SessionCard key={session.id} session={session} />
+          <SessionCard
+            key={session.id}
+            session={session}
+            onPress={() =>
+              router.push({
+                pathname: '/reader/session-form',
+                params: { bookId: String(book.id), sessionId: String(session.id) },
+              })
+            }
+          />
         ))}
       </ScrollView>
 

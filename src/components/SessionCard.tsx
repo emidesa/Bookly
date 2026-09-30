@@ -1,5 +1,5 @@
 import type { JSX } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SymbolView } from 'expo-symbols';
 import { useThemeColors } from '../theme/useThemeColors';
 import { ReadingSession } from '../types/readingSession';
@@ -7,10 +7,11 @@ import { formatDate } from '../utils/formatDate';
 
 interface SessionCardProps {
   session: ReadingSession;
+  onPress?: () => void; // si fourni : la carte devient un bouton (modifier / supprimer)
 }
 
 // Une session de lecture : date, pages lues et durée
-export default function SessionCard({ session }: SessionCardProps): JSX.Element {
+export default function SessionCard({ session, onPress }: SessionCardProps): JSX.Element {
   const colors = useThemeColors();
   const date = formatDate(session.session_date);
 
@@ -20,15 +21,17 @@ export default function SessionCard({ session }: SessionCardProps): JSX.Element 
     label = label + ', ' + session.duration_minutes + ' minutes';
   }
 
-  return (
-    <View
-      style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.separator }]}
-      accessible={true}
-      accessibilityLabel={label}
-    >
+  const content = (
+    <>
       <View style={styles.dateRow}>
         <View style={[styles.dot, { backgroundColor: colors.accent }]} />
         <Text style={[styles.date, { color: colors.text }]}>{date}</Text>
+        {/* Flèche : indique que la carte s'ouvre */}
+        {onPress !== undefined && (
+          <View style={styles.chevron}>
+            <SymbolView name={{ ios: 'chevron.right', android: 'chevron_right' }} size={16} tintColor={colors.textSecondary} />
+          </View>
+        )}
       </View>
 
       <View style={styles.detailRow}>
@@ -44,6 +47,28 @@ export default function SessionCard({ session }: SessionCardProps): JSX.Element 
           </View>
         )}
       </View>
+    </>
+  );
+
+  const cardStyle = [styles.card, { backgroundColor: colors.surface, borderColor: colors.separator }];
+
+  if (onPress !== undefined) {
+    return (
+      <Pressable
+        onPress={onPress}
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        accessibilityHint="Modifier ou supprimer cette session"
+        style={({ pressed }) => [cardStyle, { opacity: pressed ? 0.7 : 1 }]}
+      >
+        {content}
+      </Pressable>
+    );
+  }
+
+  return (
+    <View style={cardStyle} accessible={true} accessibilityLabel={label}>
+      {content}
     </View>
   );
 }
@@ -68,6 +93,9 @@ const styles = StyleSheet.create({
   date: {
     fontSize: 17,
     fontWeight: '700',
+  },
+  chevron: {
+    marginLeft: 'auto',
   },
   detailRow: {
     flexDirection: 'row',

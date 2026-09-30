@@ -21,7 +21,7 @@ import FormError from '../../components/FormError';
 import FormField from '../../components/FormField';
 import PrimaryButton from '../../components/PrimaryButton';
 import { getBook } from '../../services/bookService';
-import { createSession } from '../../services/sessionService';
+import { createSession, deleteSession, getSession, updateSession } from '../../services/sessionService';
 import { serifFont } from '../../theme/fonts';
 import { useThemeColors } from '../../theme/useThemeColors';
 import type { Book } from '../../types/book';
@@ -36,14 +36,28 @@ function toApiDate(date: Date): string {
   return date.getFullYear() + '-' + month + '-' + day;
 }
 
+// Inverse de toApiDate : 'AAAA-MM-JJ' → date locale (new Date('AAAA-MM-JJ') serait en UTC)
+function fromApiDate(text: string): Date {
+  const [year, month, day] = text.split('-').map(Number);
+  return new Date(year, month - 1, day);
+}
+
+// bookId : toujours fourni ; sessionId : seulement pour modifier une session existante
 export default function SessionFormScreen(): JSX.Element {
   const colors = useThemeColors();
   const insets = useSafeAreaInsets();
-  const { bookId: bookIdParam } = useLocalSearchParams<{ bookId: string }>();
+  const { bookId: bookIdParam, sessionId: sessionIdParam } = useLocalSearchParams<{ bookId: string; sessionId?: string }>();
   const bookId = Number(bookIdParam);
+  const sessionId = sessionIdParam === undefined ? null : Number(sessionIdParam);
+  const isEditing = sessionId !== null;
+
+  // Clé de ce qui est affiché : évite de montrer un instant l'ancien livre ou l'ancienne session
+  const formKey = bookId + '-' + (sessionId ?? 'new');
 
   const [book, setBook] = useState<Book | null>(null);
+  const [loadedKey, setLoadedKey] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const [date, setDate] = useState(new Date());
   const [startPage, setStartPage] = useState('');
@@ -62,21 +76,31 @@ export default function SessionFormScreen(): JSX.Element {
   useFocusEffect(
     useCallback(() => {
       let isActive = true;
-      getBook(bookId)
-        .then((loadedBook) => {
+      Promise.all([getBook(bookId), sessionId === null ? null : getSession(sessionId)])
+        .then(([loadedBook, session]) => {
           if (!isActive) return;
           setBook(loadedBook);
           setLoadError(null);
-          // Formulaire pré-rempli : on reprend là où la lecture s'est arrêtée (calculé par le serveur)
-          setDate(new Date());
-          setStartPage(String(loadedBook.current_page));
-          setEndPage('');
-          setDuration('');
-          setComment('');
           setError(null);
+          if (session !== null) {
+            // Modification : champs pré-remplis avec la session
+            setDate(fromApiDate(session.session_date));
+            setStartPage(String(session.start_page));
+            setEndPage(String(session.end_page));
+            setDuration(session.duration_minutes === null ? '' : String(session.duration_minutes));
+            setComment(session.comment ?? '');
+          } else {
+            // Création : on reprend là où la lecture s'est arrêtée (calculé par le serveur)
+            setDate(new Date());
+            setStartPage(String(loadedBook.current_page));
+            setEndPage('');
+            setDuration('');
+            setComment('');
+          }
+          setLoadedKey(formKey);
         })
         .catch((caught: unknown) => {
-          if (isActive) setLoadError(getErrorMessage(caught, 'Impossible de charger ce livre.'));
+          if (isActive) setLoadError(getErrorMessage(caught, 'Impossible de charger la session.'));
         });
 
       // Bouton retour d'Android : même destination que la flèche
@@ -89,7 +113,7 @@ export default function SessionFormScreen(): JSX.Element {
         isActive = false;
         subscription.remove();
       };
-    }, [bookId, goToBook]),
+    }, [bookId, sessionId, formKey, goToBook]),
   );
 
   async function handleSubmit(): Promise<void> {
@@ -118,14 +142,18 @@ export default function SessionFormScreen(): JSX.Element {
     setError(null);
     setIsSaving(true);
     try {
-      await createSession({
-        book_id: book.id,
+      const data = {
         session_date: toApiDate(date),
         start_page: start,
         end_page: end,
         duration_minutes: duration === '' ? null : Number(duration),
         comment: comment.trim() === '' ? null : comment.trim(),
-      });
+      };
+      if (sessionId !== null) {
+        await updateSession(sessionId, data);
+      } else {
+        await createSession({ book_id: book.id, ...data });
+      }
 
       // Dernière page atteinte : le serveur a passé le livre en « lu »
       if (book.total_pages && end >= book.total_pages && book.status !== 'read') {
@@ -142,10 +170,26 @@ export default function SessionFormScreen(): JSX.Element {
     }
   }
 
-  // Livre en mémoire = livre demandé ? (sinon on verrait l'ancien un instant)
-  const hasBook = book !== null && book.id === bookId;
+  function confirmDelete(): void {
+    if (sessionId === null) return;
+    Alert.alert('Supprimer cette session ?', 'Le statut du livre ne changera pas.', [
+      { text: 'Annuler', style: 'cancel' },
+      {
+        text: 'Supprimer',
+        style: 'destructive',
+        onPress: () => {
+          setIsDeleting(true);
+          deleteSession(sessionId)
+            .then(goToBook)
+            .catch((caught: unknown) => setError(getErrorMessage(caught, 'Impossible de supprimer la session.')))
+            .finally(() => setIsDeleting(false));
+        },
+      },
+    ]);
+  }
 
-  if (!hasBook) {
+  // Affiché seulement quand ce qui est chargé correspond à ce qui est demandé
+  if (book === null || loadedKey !== formKey) {
     return (
       <View style={[styles.centered, { backgroundColor: colors.background }]}>
         {loadError !== null ? (
@@ -183,7 +227,7 @@ export default function SessionFormScreen(): JSX.Element {
             <SymbolView name={{ ios: 'chevron.left', android: 'arrow_back' }} size={20} tintColor={colors.primary} />
           </Pressable>
           <Text style={[styles.title, { color: colors.text }]} accessibilityRole="header">
-            Nouvelle session
+            {isEditing ? 'Modifier la session' : 'Nouvelle session'}
           </Text>
         </View>
 
@@ -248,7 +292,11 @@ export default function SessionFormScreen(): JSX.Element {
         <FormError message={error} />
 
         <View style={styles.actions}>
-          <PrimaryButton label="Enregistrer la session" onPress={() => void handleSubmit()} isLoading={isSaving} />
+          <PrimaryButton
+            label={isEditing ? 'Enregistrer les modifications' : 'Enregistrer la session'}
+            onPress={() => void handleSubmit()}
+            isLoading={isSaving}
+          />
           <Pressable
             onPress={goToBook}
             accessibilityRole="button"
@@ -260,6 +308,25 @@ export default function SessionFormScreen(): JSX.Element {
           >
             <Text style={[styles.cancelText, { color: colors.primary }]}>Annuler</Text>
           </Pressable>
+
+          {/* Suppression : seulement pour une session existante */}
+          {isEditing ? (
+            <Pressable
+              onPress={confirmDelete}
+              disabled={isDeleting}
+              accessibilityRole="button"
+              accessibilityLabel="Supprimer la session"
+              accessibilityState={{ disabled: isDeleting, busy: isDeleting }}
+              style={({ pressed }) => [
+                styles.cancelButton,
+                styles.deleteButton,
+                { backgroundColor: colors.errorSoft, borderColor: colors.error, opacity: pressed || isDeleting ? 0.7 : 1 },
+              ]}
+            >
+              <SymbolView name={{ ios: 'trash', android: 'delete' }} size={18} tintColor={colors.error} />
+              <Text style={[styles.cancelText, { color: colors.error }]}>Supprimer la session</Text>
+            </Pressable>
+          ) : null}
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -340,5 +407,10 @@ const styles = StyleSheet.create({
   cancelText: {
     fontSize: 16,
     fontWeight: '700',
+  },
+  deleteButton: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 12,
   },
 });

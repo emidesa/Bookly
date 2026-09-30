@@ -72,6 +72,27 @@ async function updateBookStatus(book: BookRecord, endPage: number, userId: numbe
   }
 }
 
+// GET /api/sessions/:id (formulaire de modification)
+export async function getOne(req: Request<{ id: string }>, res: Response): Promise<void> {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) {
+    res.status(400).json({ message: 'Session invalide' });
+    return;
+  }
+
+  try {
+    const session = await ReadingSession.findByIdAndUser(id, req.user!.id);
+    if (!session) {
+      res.status(404).json({ message: 'Session introuvable' });
+      return;
+    }
+    res.status(200).json(session);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Impossible de charger la session' });
+  }
+}
+
 // GET /api/books/:bookId/sessions
 export async function getByBook(req: Request<{ bookId: string }>, res: Response): Promise<void> {
   const bookId = Number(req.params.bookId);
