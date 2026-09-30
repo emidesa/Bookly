@@ -8,6 +8,8 @@ export interface AdminStats {
   total_sessions: number;
   total_pages_read: number;
   total_reading_minutes: number;
+  users_this_month: number; // inscrits depuis le 1er du mois
+  users_last_month: number; // inscrits le mois précédent
 }
 
 // Statistiques de l'utilisateur connecté (écran Profil)

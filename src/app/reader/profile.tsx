@@ -3,6 +3,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 're
 import { router, useFocusEffect } from 'expo-router';
 import { SymbolView, type AndroidSymbol, type SFSymbol } from 'expo-symbols';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import AdminMenuButton from '../../components/AdminMenuButton';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeMode } from '../../context/ThemeContext';
 import { api } from '../../services/api';
@@ -10,7 +11,6 @@ import { serifFont } from '../../theme/fonts';
 import { useThemeColors } from '../../theme/useThemeColors';
 import type { UserStats } from '../../types/stats';
 import type { Role } from '../../types/user';
-import { showOptionsMenu } from '../../utils/showOptionsMenu';
 
 // Libellés de la maquette
 const roleLabels: Record<Role, string> = {
@@ -49,12 +49,6 @@ export default function ProfileScreen(): JSX.Element {
       };
     }, []),
   );
-
-  function openAdminMenu(): void {
-    showOptionsMenu('Administration', ['Comptes utilisateurs', 'Statistiques'], -1, (index) => {
-      router.push(index === 0 ? '/admin/users' : '/admin/stats');
-    });
-  }
 
   function confirmLogout(): void {
     Alert.alert('Se déconnecter', 'Tu devras te reconnecter pour retrouver ta PAL.', [
@@ -105,17 +99,7 @@ export default function ProfileScreen(): JSX.Element {
           Mon profil
         </Text>
         {/* Menu réservé aux administrateurs */}
-        {isAdmin ? (
-          <Pressable
-            onPress={openAdminMenu}
-            accessibilityRole="button"
-            accessibilityLabel="Menu administration"
-            accessibilityHint="Comptes utilisateurs et statistiques"
-            style={[styles.menuButton, { backgroundColor: colors.surface, borderColor: colors.separator }]}
-          >
-            <SymbolView name={{ ios: 'line.3.horizontal', android: 'menu' }} size={22} tintColor={colors.primary} />
-          </Pressable>
-        ) : null}
+        {isAdmin ? <AdminMenuButton /> : null}
       </View>
 
       <View style={[styles.card, styles.profileCard, { backgroundColor: colors.surface, borderColor: colors.separator }]}>
@@ -213,14 +197,6 @@ const styles = StyleSheet.create({
     fontFamily: serifFont,
     fontSize: 34,
     fontWeight: '700',
-  },
-  menuButton: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   card: {
     borderRadius: 24,

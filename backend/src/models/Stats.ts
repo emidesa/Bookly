@@ -16,7 +16,12 @@ export async function getGlobalStats(): Promise<AdminStats> {
       (SELECT COUNT(*) FROM books WHERE status = 'read') AS books_read,
       (SELECT COUNT(*) FROM reading_sessions) AS total_sessions,
       (SELECT CAST(COALESCE(SUM(end_page - start_page), 0) AS SIGNED) FROM reading_sessions) AS total_pages_read,
-      (SELECT CAST(COALESCE(SUM(duration_minutes), 0) AS SIGNED) FROM reading_sessions) AS total_reading_minutes
+      (SELECT CAST(COALESCE(SUM(duration_minutes), 0) AS SIGNED) FROM reading_sessions) AS total_reading_minutes,
+      (SELECT COUNT(*) FROM users
+         WHERE created_at >= DATE_FORMAT(CURDATE(), '%Y-%m-01')) AS users_this_month,
+      (SELECT COUNT(*) FROM users
+         WHERE created_at >= DATE_FORMAT(CURDATE() - INTERVAL 1 MONTH, '%Y-%m-01')
+           AND created_at < DATE_FORMAT(CURDATE(), '%Y-%m-01')) AS users_last_month
   `);
   return rows[0];
 }
