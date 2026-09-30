@@ -1,10 +1,11 @@
 import type { ResultSetHeader, RowDataPacket } from 'mysql2';
 import pool from '../config/database';
-import type { PublicUser, User } from '../types/user';
+import type { AdminUser, PublicUser, User } from '../types/user';
 
 // Lignes renvoyées par mysql2 pour la table users
 type UserRow = User & RowDataPacket;
 type PublicUserRow = PublicUser & RowDataPacket;
+type AdminUserRow = AdminUser & RowDataPacket;
 
 // Cherche un utilisateur par email (null si absent)
 export async function findByEmail(email: string): Promise<User | null> {
@@ -39,10 +40,14 @@ export async function updateProfile(id: number, email: string, firstName: string
   return result.affectedRows > 0;
 }
 
-// Liste tous les utilisateurs, sans mot de passe (admin)
-export async function findAll(): Promise<PublicUser[]> {
-  const [rows] = await pool.execute<PublicUserRow[]>(
-    'SELECT id, email, first_name, role, created_at FROM users ORDER BY created_at DESC',
+// Liste tous les utilisateurs, sans mot de passe, avec leur nombre de livres (admin)
+// Sous-requête : un seul appel au lieu d'une requête par utilisateur
+export async function findAll(): Promise<AdminUser[]> {
+  const [rows] = await pool.execute<AdminUserRow[]>(
+    `SELECT u.id, u.email, u.first_name, u.role, u.created_at,
+       (SELECT COUNT(*) FROM books b WHERE b.user_id = u.id) AS book_count
+     FROM users u
+     ORDER BY u.created_at DESC`,
   );
   return rows;
 }

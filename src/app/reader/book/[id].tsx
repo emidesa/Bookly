@@ -8,6 +8,7 @@ import ProgressCard from '../../../components/ProgressCard';
 import EmptyState from '../../../components/EmptyState';
 import SessionCard from '../../../components/SessionCard';
 import { deleteBook, getBook, updateBookStatus } from '../../../services/bookService';
+import { getSessions } from '../../../services/sessionService';
 import { serifFont } from '../../../theme/fonts';
 import { useThemeColors } from '../../../theme/useThemeColors';
 import { Book, BookStatus, statusLabels } from '../../../types/book';
@@ -30,12 +31,15 @@ export default function BookDetailScreen(): JSX.Element {
   const bookId = Number(id);
 
   const [book, setBook] = useState<Book | null>(null);
+  const [sessions, setSessions] = useState<ReadingSession[]>([]);
   const [loadError, setLoadError] = useState<LoadError | null>(null);
 
-  // GET /api/books/:id, à chaque affichage (progression à jour après une nouvelle session)
+  // Livre + sessions en même temps, à chaque affichage (à jour après une nouvelle session)
   const loadBook = useCallback(async (): Promise<void> => {
     try {
-      setBook(await getBook(bookId));
+      const [loadedBook, loadedSessions] = await Promise.all([getBook(bookId), getSessions(bookId)]);
+      setBook(loadedBook);
+      setSessions(loadedSessions);
       setLoadError(null);
     } catch (error) {
       setLoadError({ bookId: bookId, message: getErrorMessage(error, 'Impossible de charger ce livre.') });
@@ -65,9 +69,6 @@ export default function BookDetailScreen(): JSX.Element {
   }
 
   const status = book.status;
-
-  // PROVISOIRE : liste vide en attendant l'API des sessions (Personne B)
-  const sessions: ReadingSession[] = [];
 
   let sessionCountText = sessions.length + ' sessions';
   if (sessions.length <= 1) {

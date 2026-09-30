@@ -14,6 +14,11 @@ export interface User {
 // Utilisateur renvoyé au client : jamais le mot de passe
 export type PublicUser = Omit<User, 'password'>;
 
+// Ligne de la liste admin : utilisateur + nombre de livres dans sa PAL
+export interface AdminUser extends PublicUser {
+  book_count: number;
+}
+
 // Contenu du JWT
 export interface JwtPayload {
   id: number;
