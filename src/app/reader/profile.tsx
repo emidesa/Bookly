@@ -1,9 +1,10 @@
 import { useCallback, useState, type JSX } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { SymbolView, type AndroidSymbol, type SFSymbol } from 'expo-symbols';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../context/AuthContext';
+import { useThemeMode } from '../../context/ThemeContext';
 import { api } from '../../services/api';
 import { serifFont } from '../../theme/fonts';
 import { useThemeColors } from '../../theme/useThemeColors';
@@ -28,6 +29,7 @@ export default function ProfileScreen(): JSX.Element {
   const colors = useThemeColors();
   const insets = useSafeAreaInsets();
   const { user, logout } = useAuth();
+  const { isDark, setDarkMode } = useThemeMode();
   const [stats, setStats] = useState<UserStats | null>(null);
 
   // Rechargé à chaque retour sur l'onglet (ex. après une nouvelle session)
@@ -140,7 +142,25 @@ export default function ProfileScreen(): JSX.Element {
       </View>
 
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.separator }]}>
-        {/* Ici : ligne « Mode sombre » avec son interrupteur (Personne A, ThemeContext) */}
+        {/* Mode sombre: choix mémorisé par le ThemeContext */}
+        <View style={styles.settingRow}>
+          <View style={[styles.iconBox, { backgroundColor: colors.primarySoft }]}>
+            <SymbolView name={{ ios: 'moon', android: 'dark_mode' }} size={20} tintColor={colors.primary} />
+          </View>
+          <View style={styles.settingTexts} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden={true}>
+            <Text style={[styles.settingTitle, { color: colors.text }]}>Mode sombre</Text>
+            <Text style={[styles.settingSubtitle, { color: colors.textSecondary }]}>Choix mémorisé sur ce téléphone</Text>
+          </View>
+          <Switch
+            value={isDark}
+            onValueChange={setDarkMode}
+            accessibilityLabel="Mode sombre"
+            trackColor={{ false: colors.inputBorder, true: colors.primary }}
+            ios_backgroundColor={colors.inputBorder}
+            style={styles.switch}
+          />
+        </View>
+        <View style={[styles.divider, { backgroundColor: colors.separator }]} />
         <Pressable
           onPress={() => router.push('/reader/edit-profile')}
           accessibilityRole="button"
@@ -294,6 +314,14 @@ const styles = StyleSheet.create({
   },
   settingTexts: {
     flex: 1,
+  },
+  divider: {
+    height: 1,
+    marginHorizontal: 16,
+  },
+  // Sur iPhone, Switch se colle en haut par défaut (alignSelf: 'flex-start') : on le recentre
+  switch: {
+    alignSelf: 'center',
   },
   settingTitle: {
     fontSize: 16,
