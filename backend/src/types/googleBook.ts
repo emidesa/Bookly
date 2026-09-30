@@ -5,6 +5,7 @@ export interface GoogleVolume {
     title?: string;
     authors?: string[];
     pageCount?: number;
+    printedPageCount?: number; // nombre de pages de l'édition papier
     imageLinks?: { thumbnail?: string };
     description?: string; // peut contenir des balises HTML
   };
