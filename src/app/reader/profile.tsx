@@ -1,13 +1,14 @@
 import { useCallback, useState, type JSX } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
-import { SymbolView, type AndroidSymbol, type SFSymbol } from 'expo-symbols';
+import { SymbolView } from 'expo-symbols';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AdminMenuButton from '../../components/AdminMenuButton';
+import StatCard from '../../components/StatCard';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useThemeMode } from '../../context/ThemeContext';
-import { getLocaleTag, languages, type Language, type TranslationKey } from '../../i18n/i18n';
+import { languages, type Language, type TranslationKey } from '../../i18n/i18n';
 import { api } from '../../services/api';
 import { serifFont } from '../../theme/fonts';
 import { useThemeColors } from '../../theme/useThemeColors';
@@ -26,13 +27,6 @@ const languageKeys: Record<Language, TranslationKey> = {
   fr: 'languages.fr',
   en: 'languages.en',
 };
-
-type SymbolName = { ios: SFSymbol; android: AndroidSymbol };
-
-// « 6842 » devient « 6 842 » ; tiret tant que la valeur n'est pas connue
-function formatCount(value: number | undefined): string {
-  return value === undefined ? '–' : value.toLocaleString(getLocaleTag());
-}
 
 export default function ProfileScreen(): JSX.Element {
   const colors = useThemeColors();
@@ -88,25 +82,6 @@ export default function ProfileScreen(): JSX.Element {
   const initial = user.first_name.charAt(0).toUpperCase();
   const isAdmin = user.role === 'admin';
 
-  function renderStatCard(value: number | undefined, label: string, icon: SymbolName, iconBackground: string, iconColor: string): JSX.Element {
-    const text = formatCount(value);
-    return (
-      <View
-        accessible
-        accessibilityLabel={value === undefined ? t('profile.statLoading', { label: label }) : text + ' ' + label}
-        style={[styles.statCard, { backgroundColor: colors.surface, borderColor: colors.separator }]}
-      >
-        <View style={[styles.iconBox, { backgroundColor: iconBackground }]}>
-          <SymbolView name={icon} size={22} tintColor={iconColor} />
-        </View>
-        <View style={styles.statTexts}>
-          <Text style={[styles.statValue, { color: colors.text }]}>{text}</Text>
-          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{label}</Text>
-        </View>
-      </View>
-    );
-  }
-
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
@@ -139,8 +114,20 @@ export default function ProfileScreen(): JSX.Element {
       </View>
 
       <View style={styles.statsRow}>
-        {renderStatCard(stats?.books_read, t('profile.booksRead'), { ios: 'book', android: 'menu_book' }, colors.primarySoft, colors.primary)}
-        {renderStatCard(stats?.pages_read, t('profile.pagesRead'), { ios: 'doc.text', android: 'description' }, colors.accentSoft, colors.accentText)}
+        <StatCard
+          value={stats?.books_read}
+          label={t('profile.booksRead')}
+          icon={{ ios: 'book', android: 'menu_book' }}
+          iconBackground={colors.primarySoft}
+          iconColor={colors.primary}
+        />
+        <StatCard
+          value={stats?.pages_read}
+          label={t('profile.pagesRead')}
+          icon={{ ios: 'doc.text', android: 'description' }}
+          iconBackground={colors.accentSoft}
+          iconColor={colors.accentText}
+        />
       </View>
 
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.separator }]}>
@@ -289,32 +276,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
   },
-  statCard: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    borderRadius: 20,
-    borderWidth: 1,
-    padding: 14,
-  },
   iconBox: {
     width: 44,
     height: 44,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  statTexts: {
-    flexShrink: 1,
-  },
-  statValue: {
-    fontFamily: serifFont,
-    fontSize: 22,
-    fontWeight: '700',
-  },
-  statLabel: {
-    fontSize: 13,
   },
   settingRow: {
     flexDirection: 'row',
