@@ -4,6 +4,8 @@ import { Tabs } from 'expo-router';
 import { GlassView, isLiquidGlassAvailable } from 'expo-glass-effect';
 import { SymbolView, type AndroidSymbol, type SFSymbol } from 'expo-symbols';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useLanguage } from '../context/LanguageContext';
+import type { TranslationKey } from '../i18n/i18n';
 import { useThemeColors } from '../theme/useThemeColors';
 
 // Props que expo-router donne à une barre d'onglets personnalisée
@@ -11,21 +13,22 @@ type TabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>['tabBar']>
 
 interface TabItem {
   name: string; // nom du fichier dans src/app/reader
-  label: string;
+  labelKey: TranslationKey; // libellé traduit
   icon: { ios: SFSymbol; android: AndroidSymbol }; // icônes natives (SF Symbols / Material)
 }
 
 // Seuls ces onglets apparaissent (book/[id] et session-form restent cachés)
 const tabItems: TabItem[] = [
-  { name: 'library', label: 'PAL', icon: { ios: 'books.vertical', android: 'library_books' } },
-  { name: 'search', label: 'Recherche', icon: { ios: 'magnifyingglass', android: 'search' } },
-  { name: 'scanner', label: 'Scanner', icon: { ios: 'barcode.viewfinder', android: 'barcode_scanner' } },
-  { name: 'profile', label: 'Profil', icon: { ios: 'person', android: 'person' } },
+  { name: 'library', labelKey: 'tabs.library', icon: { ios: 'books.vertical', android: 'library_books' } },
+  { name: 'search', labelKey: 'tabs.search', icon: { ios: 'magnifyingglass', android: 'search' } },
+  { name: 'scanner', labelKey: 'tabs.scanner', icon: { ios: 'barcode.viewfinder', android: 'barcode_scanner' } },
+  { name: 'profile', labelKey: 'tabs.profile', icon: { ios: 'person', android: 'person' } },
 ];
 
 // Barre d'onglets flottante et vitrée (Liquid Glass sur iOS 26, fond translucide sinon)
 export default function GlassTabBar({ state, navigation }: TabBarProps): JSX.Element | null {
   const colors = useThemeColors();
+  const { t } = useLanguage();
   const insets = useSafeAreaInsets();
   const focusedName = state.routes[state.index].name;
 
@@ -62,12 +65,12 @@ export default function GlassTabBar({ state, navigation }: TabBarProps): JSX.Ele
         key={item.name}
         onPress={onPress}
         accessibilityRole="tab"
-        accessibilityLabel={item.label}
+        accessibilityLabel={t(item.labelKey)}
         accessibilityState={{ selected: isFocused }}
         style={[styles.tab, isFocused && { backgroundColor: colors.tabActiveBackground }]}
       >
         <SymbolView name={item.icon} size={24} tintColor={color} />
-        <Text style={[styles.label, { color: color }]}>{item.label}</Text>
+        <Text style={[styles.label, { color: color }]}>{t(item.labelKey)}</Text>
       </Pressable>
     );
   });

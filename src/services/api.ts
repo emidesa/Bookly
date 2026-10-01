@@ -1,4 +1,5 @@
 // Seul point de contact avec le backend : URL, token, erreurs et délai
+import { translate } from '../i18n/i18n';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 const TIMEOUT_MS = 10000;
@@ -39,7 +40,7 @@ function extractMessage(data: unknown): string | null {
 
 async function request<T>(method: HttpMethod, path: string, body?: unknown): Promise<T> {
   if (!API_URL) {
-    throw new ApiError(0, 'EXPO_PUBLIC_API_URL manquante dans le .env');
+    throw new ApiError(0, translate('api.missingUrl'));
   }
 
   const headers: Record<string, string> = { Accept: 'application/json' };
@@ -64,7 +65,7 @@ async function request<T>(method: HttpMethod, path: string, body?: unknown): Pro
       signal: controller.signal,
     });
   } catch {
-    throw new ApiError(0, 'Impossible de joindre le serveur. Vérifie ta connexion.');
+    throw new ApiError(0, translate('api.unreachable'));
   } finally {
     clearTimeout(timeout);
   }
@@ -76,7 +77,7 @@ async function request<T>(method: HttpMethod, path: string, body?: unknown): Pro
     if (response.status === 401 && sentToken) {
       unauthorizedHandler?.();
     }
-    throw new ApiError(response.status, extractMessage(data) ?? 'Une erreur est survenue');
+    throw new ApiError(response.status, extractMessage(data) ?? translate('api.generic'));
   }
 
   // Le backend respecte le contrat décrit dans src/types

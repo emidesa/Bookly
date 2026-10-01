@@ -4,6 +4,7 @@ import { Redirect } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import PrimaryButton from '../components/PrimaryButton';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { serifFont } from '../theme/fonts';
 import { useThemeColors } from '../theme/useThemeColors';
 
@@ -11,6 +12,7 @@ import { useThemeColors } from '../theme/useThemeColors';
 export default function Index(): JSX.Element {
   const colors = useThemeColors();
   const { status, retry, logout } = useAuth();
+  const { t } = useLanguage();
 
   if (status === 'signedIn') {
     // Lecteur comme admin : l'admin accède à son espace depuis le Profil
@@ -25,7 +27,7 @@ export default function Index(): JSX.Element {
   if (status === 'loading') {
     return (
       <View style={[styles.centered, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.primary} accessibilityLabel="Chargement" />
+        <ActivityIndicator size="large" color={colors.primary} accessibilityLabel={t('common.loading')} />
       </View>
     );
   }
@@ -37,22 +39,22 @@ export default function Index(): JSX.Element {
         <SymbolView name={{ ios: 'wifi.slash', android: 'cloud_off' }} size={32} tintColor={colors.primary} />
       </View>
       <Text style={[styles.title, { color: colors.text }]} accessibilityRole="header">
-        Serveur injoignable
+        {t('home.offlineTitle')}
       </Text>
       <Text style={[styles.text, { color: colors.textSecondary }]}>
-        Vérifie ta connexion internet, puis réessaie.
+        {t('home.offlineText')}
       </Text>
 
       <View style={styles.actions}>
-        <PrimaryButton label="Réessayer" onPress={() => void retry()} />
+        <PrimaryButton label={t('common.retry')} onPress={() => void retry()} />
         {/* Sortie de secours si le serveur reste injoignable */}
         <Pressable
           onPress={() => void logout()}
           accessibilityRole="button"
-          accessibilityLabel="Revenir à la connexion"
+          accessibilityLabel={t('home.backToLogin')}
           style={styles.secondaryButton}
         >
-          <Text style={[styles.secondaryText, { color: colors.primary }]}>Revenir à la connexion</Text>
+          <Text style={[styles.secondaryText, { color: colors.primary }]}>{t('home.backToLogin')}</Text>
         </Pressable>
       </View>
     </View>

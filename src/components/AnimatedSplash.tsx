@@ -11,6 +11,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { splashColors } from '../theme/colors';
+import { useLanguage } from '../context/LanguageContext';
 import { serifFont } from '../theme/fonts';
 
 interface AnimatedSplashProps {
@@ -43,6 +44,7 @@ function AnimatedBook({ delay, style, rotation }: { delay: number; style: ViewSt
 }
 
 export default function AnimatedSplash({ onFinish }: AnimatedSplashProps): JSX.Element {
+  const { t } = useLanguage();
   const reduceMotion = useReducedMotion();
 
   // Avec « Réduire les animations », tout est visible directement
@@ -95,7 +97,7 @@ export default function AnimatedSplash({ onFinish }: AnimatedSplashProps): JSX.E
     <Animated.View
       style={[styles.container, splashStyle]}
       accessible={true}
-      accessibilityLabel="Bookly, Vos lectures, précieusement gardées."
+      accessibilityLabel={'Bookly, ' + t('splash.tagline')}
     >
       <Animated.View style={[StyleSheet.absoluteFill, gradientStyle]}>
         <LinearGradient
@@ -118,7 +120,7 @@ export default function AnimatedSplash({ onFinish }: AnimatedSplashProps): JSX.E
         <Animated.Text style={[styles.title, titleStyle]}>Bookly</Animated.Text>
       </View>
 
-      <Animated.Text style={[styles.tagline, taglineStyle]}>Vos lectures, précieusement gardées.</Animated.Text>
+      <Animated.Text style={[styles.tagline, taglineStyle]}>{t('splash.tagline')}</Animated.Text>
     </Animated.View>
   );
 }

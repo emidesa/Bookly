@@ -1,10 +1,12 @@
+import type { TranslationKey } from '../i18n/i18n';
+
 export type BookStatus = 'to_read' | 'reading' | 'read';
 
-// Libellés affichés pour chaque statut
-export const statusLabels: Record<BookStatus, string> = {
-  to_read: 'À lire',
-  reading: 'En cours',
-  read: 'Lu',
+// Clé de traduction du libellé de chaque statut (« À lire » / « To read »...)
+export const statusKeys: Record<BookStatus, TranslationKey> = {
+  to_read: 'status.to_read',
+  reading: 'status.reading',
+  read: 'status.read',
 };
 
 // Livre de la PAL, renvoyé par GET /api/books

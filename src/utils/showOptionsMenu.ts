@@ -1,4 +1,5 @@
 import { ActionSheetIOS, Alert, Platform } from 'react-native';
+import { translate } from '../i18n/i18n';
 
 // Menu de choix natif : feuille en bas sur iPhone, boîte de dialogue sur Android
 // Le choix actuel est marqué d'un ✓ ; onSelect reçoit l'index choisi
@@ -13,7 +14,7 @@ export function showOptionsMenu(title: string, options: string[], selectedIndex:
   }
 
   if (Platform.OS === 'ios') {
-    const iosOptions = labels.concat(['Annuler']);
+    const iosOptions = labels.concat([translate('common.cancel')]);
     ActionSheetIOS.showActionSheetWithOptions(
       { title: title, options: iosOptions, cancelButtonIndex: labels.length },
       (index) => {

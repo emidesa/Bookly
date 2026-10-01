@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import BookPreviewModal from '../../components/BookPreviewModal';
 import ScreenHeader from '../../components/ScreenHeader';
 import SearchBookCard from '../../components/SearchBookCard';
+import { useLanguage } from '../../context/LanguageContext';
 import { useLibrary } from '../../hooks/useLibrary';
 import { getTrending, searchGoogle } from '../../services/bookService';
 import { serifFont } from '../../theme/fonts';
@@ -19,6 +20,7 @@ const SEARCH_DELAY = 400; // ms après la dernière lettre tapée
 export default function SearchScreen(): JSX.Element {
   const colors = useThemeColors();
   const insets = useSafeAreaInsets();
+  const { t } = useLanguage();
 
   const [query, setQuery] = useState('');
   const [searchedQuery, setSearchedQuery] = useState<string | null>(null); // null = recommandations
@@ -68,7 +70,7 @@ export default function SearchScreen(): JSX.Element {
       } catch (error) {
         if (!isOutdated) {
           setResults([]);
-          setErrorMessage(getErrorMessage(error, 'La recherche est indisponible, réessaie plus tard.'));
+          setErrorMessage(getErrorMessage(error, t('search.unavailable')));
           setSearchedQuery(text);
         }
       } finally {
@@ -83,7 +85,7 @@ export default function SearchScreen(): JSX.Element {
       clearTimeout(timer);
       isOutdated = true;
     };
-  }, [query]);
+  }, [query, t]);
 
   function clearSearch(): void {
     setQuery('');
@@ -98,7 +100,7 @@ export default function SearchScreen(): JSX.Element {
 
   const header = (
     <View>
-      <ScreenHeader overline="Explorer" title="Trouver un livre" />
+      <ScreenHeader overline={t('search.overline')} title={t('search.title')} />
 
       {/* Champ de recherche : contour visible (WCAG 1.4.11, un champ vide n'a pas de texte) */}
       <View style={[styles.searchField, { backgroundColor: colors.surface, borderColor: colors.inputBorder }]}>
@@ -107,14 +109,14 @@ export default function SearchScreen(): JSX.Element {
           value={query}
           onChangeText={setQuery}
           onSubmitEditing={() => Keyboard.dismiss()}
-          placeholder="Rechercher un titre, un auteur..."
+          placeholder={t('search.placeholder')}
           placeholderTextColor={colors.textSecondary}
           returnKeyType="search"
-          accessibilityLabel="Rechercher un livre par titre ou par auteur"
+          accessibilityLabel={t('search.inputLabel')}
           style={[styles.input, { color: colors.text }]}
         />
         {query !== '' && (
-          <Pressable onPress={clearSearch} accessibilityRole="button" accessibilityLabel="Effacer la recherche" hitSlop={12}>
+          <Pressable onPress={clearSearch} accessibilityRole="button" accessibilityLabel={t('common.clearSearch')} hitSlop={12}>
             <SymbolView name={{ ios: 'xmark.circle.fill', android: 'cancel' }} size={20} tintColor={colors.textSecondary} />
           </Pressable>
         )}
@@ -123,20 +125,20 @@ export default function SearchScreen(): JSX.Element {
       {!isShowingResults && (
         <View style={[styles.banner, { backgroundColor: colors.primarySoft }]}>
           <SymbolView name={{ ios: 'chart.bar', android: 'bar_chart' }} size={20} tintColor={colors.primary} />
-          <Text style={[styles.bannerText, { color: colors.primary }]}>Inspiré des livres les plus ajoutés par la communauté</Text>
+          <Text style={[styles.bannerText, { color: colors.primary }]}>{t('search.banner')}</Text>
         </View>
       )}
 
       <View style={styles.sectionHeader}>
         <Text style={[styles.sectionTitle, { color: colors.text }]} accessibilityRole="header">
-          {isShowingResults ? 'Résultats' : 'Recommandations'}
+          {isShowingResults ? t('search.results') : t('search.recommendations')}
         </Text>
       </View>
 
       {isLoading && (
-        <View style={styles.message} accessible={true} accessibilityLabel="Recherche en cours">
+        <View style={styles.message} accessible={true} accessibilityLabel={t('search.searching')}>
           <ActivityIndicator color={colors.primary} />
-          <Text style={[styles.messageText, { color: colors.textSecondary }]}>Recherche en cours...</Text>
+          <Text style={[styles.messageText, { color: colors.textSecondary }]}>{t('search.searching') + '...'}</Text>
         </View>
       )}
       {isShowingResults && errorMessage !== null && (
@@ -159,7 +161,7 @@ export default function SearchScreen(): JSX.Element {
         ListEmptyComponent={
           isShowingResults && !isLoading ? (
             <Text style={[styles.messageText, { color: colors.textSecondary }]}>
-              {'Aucun livre trouvé pour « ' + searchedQuery + ' »'}
+              {t('search.noResult', { query: searchedQuery ?? '' })}
             </Text>
           ) : null
         }

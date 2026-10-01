@@ -2,6 +2,8 @@ import type { JSX } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { SymbolView } from 'expo-symbols';
+import { useLanguage } from '../context/LanguageContext';
+import { getLocaleTag } from '../i18n/i18n';
 import { useThemeColors } from '../theme/useThemeColors';
 
 interface DateFieldProps {
@@ -13,12 +15,13 @@ interface DateFieldProps {
 
 // « 12 mai 2025 »
 function formatLongDate(date: Date): string {
-  return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+  return date.toLocaleDateString(getLocaleTag(), { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
 // Champ date : sélecteur compact intégré sur iPhone, calendrier en boîte de dialogue sur Android
 export default function DateField({ label, value, onChange, maximumDate }: DateFieldProps): JSX.Element {
   const colors = useThemeColors();
+  const { t } = useLanguage();
   const rowStyle = [styles.inputRow, { backgroundColor: colors.surface, borderColor: colors.inputBorder }];
 
   // Icône décorative : le libellé suffit aux lecteurs d'écran
@@ -48,7 +51,7 @@ export default function DateField({ label, value, onChange, maximumDate }: DateF
             value={value}
             mode="date"
             display="compact"
-            locale="fr-FR"
+            locale={getLocaleTag()}
             maximumDate={maximumDate}
             accentColor={colors.primary}
             onValueChange={(_event, date) => onChange(date)}
@@ -59,7 +62,7 @@ export default function DateField({ label, value, onChange, maximumDate }: DateF
           onPress={openAndroidPicker}
           accessibilityRole="button"
           accessibilityLabel={label + ' : ' + formatLongDate(value)}
-          accessibilityHint="Ouvre le calendrier"
+          accessibilityHint={t('dateField.openCalendar')}
           style={rowStyle}
         >
           {icon}

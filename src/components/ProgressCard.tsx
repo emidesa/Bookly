@@ -1,6 +1,7 @@
 import type { JSX } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import ProgressBar from './ProgressBar';
+import { useLanguage } from '../context/LanguageContext';
 import { useThemeColors } from '../theme/useThemeColors';
 
 interface ProgressCardProps {
@@ -13,6 +14,7 @@ interface ProgressCardProps {
 // Carte « Ma progression » : pourcentage, barre, page actuelle et pages restantes
 export default function ProgressCard({ percent, currentPage, totalPages, remainingPages }: ProgressCardProps): JSX.Element | null {
   const colors = useThemeColors();
+  const { t } = useLanguage();
 
   // Nombre de pages inconnu : pas de carte
   if (percent === null || totalPages === null || remainingPages === null) {
@@ -23,16 +25,16 @@ export default function ProgressCard({ percent, currentPage, totalPages, remaini
     <View
       style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.separator }]}
       accessible={true}
-      accessibilityLabel={'Ma progression : ' + percent + ' %, page ' + currentPage + ' sur ' + totalPages + ', ' + remainingPages + ' pages restantes'}
+      accessibilityLabel={t('progress.a11y', { percent: percent, current: currentPage, total: totalPages, remaining: t('progress.remaining', { count: remainingPages }) })}
     >
       <View style={styles.top}>
-        <Text style={[styles.label, { color: colors.text }]}>Ma progression</Text>
+        <Text style={[styles.label, { color: colors.text }]}>{t('progress.title')}</Text>
         <Text style={[styles.percent, { color: colors.primary }]}>{percent + ' %'}</Text>
       </View>
       <ProgressBar percent={percent} showPercent={false} />
       <View style={styles.bottom}>
-        <Text style={[styles.detail, { color: colors.textSecondary }]}>{'Page ' + currentPage + ' sur ' + totalPages}</Text>
-        <Text style={[styles.detail, { color: colors.textSecondary }]}>{remainingPages + ' pages restantes'}</Text>
+        <Text style={[styles.detail, { color: colors.textSecondary }]}>{t('progress.pageOf', { current: currentPage, total: totalPages })}</Text>
+        <Text style={[styles.detail, { color: colors.textSecondary }]}>{t('progress.remaining', { count: remainingPages })}</Text>
       </View>
     </View>
   );

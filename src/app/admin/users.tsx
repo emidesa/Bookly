@@ -7,6 +7,8 @@ import AdminMenuButton from '../../components/AdminMenuButton';
 import EmptyState from '../../components/EmptyState';
 import ScreenHeader from '../../components/ScreenHeader';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
+import { getLocaleTag, type TranslationKey } from '../../i18n/i18n';
 import { deleteUser, getUsers } from '../../services/adminService';
 import { serifFont } from '../../theme/fonts';
 import { useThemeColors } from '../../theme/useThemeColors';
@@ -14,10 +16,10 @@ import type { AdminUser } from '../../types/admin';
 import type { Role } from '../../types/user';
 import { getErrorMessage } from '../../utils/getErrorMessage';
 
-// Libellés de la maquette
-const roleLabels: Record<Role, string> = {
-  reader: 'Lecteur',
-  admin: 'Admin',
+// Clés des libellés de la maquette
+const roleKeys: Record<Role, TranslationKey> = {
+  reader: 'adminUsers.roles.reader',
+  admin: 'adminUsers.roles.admin',
 };
 
 // « camille.martin@… » → « CM » ; sinon l'initiale du prénom
@@ -29,14 +31,11 @@ function getInitials(user: AdminUser): string {
   return user.first_name.charAt(0).toUpperCase();
 }
 
-function formatBookCount(count: number): string {
-  return count + (count > 1 ? ' livres' : ' livre');
-}
-
 export default function AdminUsersScreen(): JSX.Element {
   const colors = useThemeColors();
   const insets = useSafeAreaInsets();
   const { user: currentUser, logout } = useAuth();
+  const { t } = useLanguage();
 
   const [users, setUsers] = useState<AdminUser[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -50,9 +49,9 @@ export default function AdminUsersScreen(): JSX.Element {
       setUpdatedAt(new Date());
       setLoadError(null);
     } catch (error) {
-      setLoadError(getErrorMessage(error, 'Impossible de charger les utilisateurs.'));
+      setLoadError(getErrorMessage(error, t('adminUsers.loadError')));
     }
-  }, []);
+  }, [t]);
 
   // Rechargé à chaque affichage de l'écran
   useFocusEffect(
@@ -70,15 +69,15 @@ export default function AdminUsersScreen(): JSX.Element {
 
   function confirmDelete(target: AdminUser): void {
     const isSelf = currentUser !== null && target.id === currentUser.id;
-    let message = target.email + ' et ' + formatBookCount(target.book_count) + ' (avec leurs sessions) seront supprimés définitivement.';
+    let message = t('adminUsers.deleteMessage', { email: target.email, books: t('adminUsers.books', { count: target.book_count }) });
     if (isSelf) {
-      message = message + "\n\nC'est ton propre compte : tu seras déconnecté.";
+      message = message + '\n\n' + t('adminUsers.selfWarning');
     }
 
-    Alert.alert('Supprimer ce compte ?', message, [
-      { text: 'Annuler', style: 'cancel' },
+    Alert.alert(t('adminUsers.deleteTitle'), message, [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Supprimer',
+        text: t('common.delete'),
         style: 'destructive',
         onPress: () => {
           void deleteUser(target.id)
@@ -91,7 +90,7 @@ export default function AdminUsersScreen(): JSX.Element {
               setUsers((previous) => (previous === null ? previous : previous.filter((item) => item.id !== target.id)));
             })
             .catch((error: unknown) => {
-              Alert.alert('Suppression impossible', getErrorMessage(error, 'Une erreur est survenue.'));
+              Alert.alert(t('adminUsers.deleteFailedTitle'), getErrorMessage(error, t('common.unknownError')));
             });
         },
       },
@@ -107,15 +106,15 @@ export default function AdminUsersScreen(): JSX.Element {
     );
   }
 
-  const countText = visibleUsers.length + (visibleUsers.length > 1 ? ' utilisateurs' : ' utilisateur');
+  const countText = t('adminUsers.count', { count: visibleUsers.length });
   let updatedText = '';
   if (updatedAt !== null) {
-    updatedText = 'Mis à jour à ' + updatedAt.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    updatedText = t('adminUsers.updatedAt', { time: updatedAt.toLocaleTimeString(getLocaleTag(), { hour: '2-digit', minute: '2-digit' }) });
   }
 
   const header = (
     <View>
-      <ScreenHeader overline="Administration" title="Utilisateurs" right={<AdminMenuButton current="users" />} />
+      <ScreenHeader overline={t('admin.menu')} title={t('adminUsers.title')} right={<AdminMenuButton current="users" />} />
 
       {/* Même champ que l'écran Recherche (contour visible, WCAG 1.4.11) */}
       <View style={[styles.searchField, { backgroundColor: colors.surface, borderColor: colors.inputBorder }]}>
@@ -124,16 +123,16 @@ export default function AdminUsersScreen(): JSX.Element {
           value={query}
           onChangeText={setQuery}
           onSubmitEditing={() => Keyboard.dismiss()}
-          placeholder="Rechercher un utilisateur..."
+          placeholder={t('adminUsers.searchPlaceholder')}
           placeholderTextColor={colors.textSecondary}
           returnKeyType="search"
           autoCapitalize="none"
           autoCorrect={false}
-          accessibilityLabel="Rechercher un utilisateur par email ou par prénom"
+          accessibilityLabel={t('adminUsers.searchLabel')}
           style={[styles.searchInput, { color: colors.text }]}
         />
         {query !== '' && (
-          <Pressable onPress={() => setQuery('')} accessibilityRole="button" accessibilityLabel="Effacer la recherche" hitSlop={12}>
+          <Pressable onPress={() => setQuery('')} accessibilityRole="button" accessibilityLabel={t('common.clearSearch')} hitSlop={12}>
             <SymbolView name={{ ios: 'xmark.circle.fill', android: 'cancel' }} size={20} tintColor={colors.textSecondary} />
           </Pressable>
         )}
@@ -156,7 +155,7 @@ export default function AdminUsersScreen(): JSX.Element {
         <View
           style={styles.cardInfo}
           accessible
-          accessibilityLabel={item.email + ', ' + roleLabels[item.role] + ', ' + formatBookCount(item.book_count)}
+          accessibilityLabel={item.email + ', ' + t(roleKeys[item.role]) + ', ' + t('adminUsers.books', { count: item.book_count })}
         >
           <View style={[styles.avatar, { backgroundColor: colors.primarySoft }]}>
             <Text style={[styles.avatarText, { color: colors.primary }]}>{getInitials(item)}</Text>
@@ -168,10 +167,10 @@ export default function AdminUsersScreen(): JSX.Element {
             <View style={styles.metaRow}>
               <View style={[styles.roleBadge, { backgroundColor: isAdmin ? colors.primarySoft : colors.surfaceElevated }]}>
                 <Text style={[styles.roleText, { color: isAdmin ? colors.primary : colors.textSecondary }]}>
-                  {roleLabels[item.role]}
+                  {t(roleKeys[item.role])}
                 </Text>
               </View>
-              <Text style={[styles.bookCount, { color: colors.textSecondary }]}>{formatBookCount(item.book_count)}</Text>
+              <Text style={[styles.bookCount, { color: colors.textSecondary }]}>{t('adminUsers.books', { count: item.book_count })}</Text>
             </View>
           </View>
         </View>
@@ -179,7 +178,7 @@ export default function AdminUsersScreen(): JSX.Element {
         <Pressable
           onPress={() => confirmDelete(item)}
           accessibilityRole="button"
-          accessibilityLabel={'Supprimer le compte ' + item.email}
+          accessibilityLabel={t('adminUsers.deleteLabel', { email: item.email })}
           style={({ pressed }) => [styles.deleteButton, { backgroundColor: colors.errorSoft, opacity: pressed ? 0.7 : 1 }]}
         >
           <SymbolView name={{ ios: 'trash', android: 'delete' }} size={20} tintColor={colors.error} />
@@ -193,9 +192,9 @@ export default function AdminUsersScreen(): JSX.Element {
     return (
       <View style={[styles.centered, { backgroundColor: colors.background, paddingTop: insets.top }]}>
         {loadError !== null ? (
-          <EmptyState message={loadError} isError={true} buttonLabel="Réessayer" onPress={() => void loadUsers()} />
+          <EmptyState message={loadError} isError={true} buttonLabel={t('common.retry')} onPress={() => void loadUsers()} />
         ) : (
-          <ActivityIndicator size="large" color={colors.primary} accessibilityLabel="Chargement" />
+          <ActivityIndicator size="large" color={colors.primary} accessibilityLabel={t('common.loading')} />
         )}
       </View>
     );
@@ -209,7 +208,7 @@ export default function AdminUsersScreen(): JSX.Element {
       keyExtractor={(item) => String(item.id)}
       renderItem={renderUser}
       ListHeaderComponent={header}
-      ListEmptyComponent={<EmptyState message="Aucun utilisateur ne correspond à ta recherche." />}
+      ListEmptyComponent={<EmptyState message={t('adminUsers.noMatch')} />}
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
       refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={() => void refresh()} tintColor={colors.primary} />}
