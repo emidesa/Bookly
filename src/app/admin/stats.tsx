@@ -1,14 +1,13 @@
 import { useCallback, useState, type JSX } from 'react';
 import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
-import { SymbolView, type AndroidSymbol, type SFSymbol } from 'expo-symbols';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AdminMenuButton from '../../components/AdminMenuButton';
 import BookCover from '../../components/BookCover';
 import EmptyState from '../../components/EmptyState';
 import ScreenHeader from '../../components/ScreenHeader';
+import StatCard from '../../components/StatCard';
 import { useLanguage } from '../../context/LanguageContext';
-import { getLocaleTag, translate } from '../../i18n/i18n';
 import { getAdminStats } from '../../services/adminService';
 import { getTrending } from '../../services/bookService';
 import { serifFont } from '../../theme/fonts';
@@ -16,25 +15,6 @@ import { useThemeColors } from '../../theme/useThemeColors';
 import type { AdminStats } from '../../types/admin';
 import type { TrendingBook } from '../../types/book';
 import { getErrorMessage } from '../../utils/getErrorMessage';
-
-type SymbolName = { ios: SFSymbol; android: AndroidSymbol };
-
-// « 1248 » devient « 1 248 »
-function formatCount(value: number): string {
-  return value.toLocaleString(getLocaleTag());
-}
-
-// Inscriptions de ce mois comparées au mois dernier (pas de % possible si le mois dernier vaut 0)
-function getGrowthText(thisMonth: number, lastMonth: number): string {
-  if (lastMonth > 0) {
-    const percent = Math.round(((thisMonth - lastMonth) * 100) / lastMonth);
-    return translate('adminStats.growthPercent', { percent: (percent >= 0 ? '+' : '') + percent });
-  }
-  if (thisMonth > 0) {
-    return translate('adminStats.growthCount', { count: thisMonth });
-  }
-  return translate('adminStats.noSignup');
-}
 
 export default function AdminStatsScreen(): JSX.Element {
   const colors = useThemeColors();
@@ -82,24 +62,6 @@ export default function AdminStatsScreen(): JSX.Element {
     );
   }
 
-  const growthText = getGrowthText(stats.users_this_month, stats.users_last_month);
-
-  function renderSmallCard(label: string, value: number, icon: SymbolName, iconBackground: string, iconColor: string): JSX.Element {
-    return (
-      <View
-        accessible
-        accessibilityLabel={t('adminStats.cardLabel', { label: label, value: formatCount(value) })}
-        style={[styles.card, styles.smallCard, { backgroundColor: colors.surface, borderColor: colors.separator }]}
-      >
-        <View style={[styles.iconBox, { backgroundColor: iconBackground }]}>
-          <SymbolView name={icon} size={22} tintColor={iconColor} />
-        </View>
-        <Text style={[styles.cardLabel, { color: colors.textSecondary }]}>{label}</Text>
-        <Text style={[styles.cardValue, { color: colors.text }]}>{formatCount(value)}</Text>
-      </View>
-    );
-  }
-
   return (
     <ScrollView
       style={{ backgroundColor: colors.background }}
@@ -108,25 +70,32 @@ export default function AdminStatsScreen(): JSX.Element {
     >
       <ScreenHeader overline={t('admin.menu')} title={t('adminStats.title')} right={<AdminMenuButton current="stats" />} />
 
-      {/* Lecteurs + évolution des inscriptions */}
-      <View
-        accessible
-        accessibilityLabel={t('adminStats.readersLabel', { count: formatCount(stats.total_users), growth: growthText })}
-        style={[styles.card, styles.bigCard, { backgroundColor: colors.surface, borderColor: colors.separator }]}
-      >
-        <View style={[styles.iconBox, { backgroundColor: colors.primarySoft }]}>
-          <SymbolView name={{ ios: 'person.2', android: 'group' }} size={22} tintColor={colors.primary} />
-        </View>
-        <View style={styles.bigCardTexts}>
-          <Text style={[styles.cardLabel, { color: colors.textSecondary }]}>{t('adminStats.readers')}</Text>
-          <Text style={[styles.bigValue, { color: colors.text }]}>{formatCount(stats.total_users)}</Text>
-          <Text style={[styles.growth, { color: colors.accentText }]}>{growthText}</Text>
-        </View>
+      {/* Lecteurs : sur toute la largeur (seul dans sa ligne) */}
+      <View style={styles.row}>
+        <StatCard
+          value={stats.total_users}
+          label={t('adminStats.readers')}
+          icon={{ ios: 'person.2', android: 'group' }}
+          iconBackground={colors.primarySoft}
+          iconColor={colors.primary}
+        />
       </View>
 
       <View style={styles.row}>
-        {renderSmallCard(t('adminStats.booksAdded'), stats.total_books, { ios: 'book', android: 'menu_book' }, colors.primarySoft, colors.primary)}
-        {renderSmallCard(t('adminStats.sessions'), stats.total_sessions, { ios: 'clock', android: 'schedule' }, colors.accentSoft, colors.accentText)}
+        <StatCard
+          value={stats.total_books}
+          label={t('adminStats.booksAdded')}
+          icon={{ ios: 'book', android: 'menu_book' }}
+          iconBackground={colors.primarySoft}
+          iconColor={colors.primary}
+        />
+        <StatCard
+          value={stats.total_sessions}
+          label={t('adminStats.sessions')}
+          icon={{ ios: 'clock', android: 'schedule' }}
+          iconBackground={colors.accentSoft}
+          iconColor={colors.accentText}
+        />
       </View>
 
       {/* Top 3 : route « tendances » de la PAL (Personne A) */}
@@ -188,46 +157,6 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: 24,
     borderWidth: 1,
-  },
-  bigCard: {
-    flexDirection: 'row',
-    gap: 16,
-    padding: 20,
-  },
-  bigCardTexts: {
-    flex: 1,
-  },
-  smallCard: {
-    flex: 1,
-    padding: 18,
-  },
-  iconBox: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cardLabel: {
-    fontSize: 14,
-    marginTop: 12,
-  },
-  cardValue: {
-    fontFamily: serifFont,
-    fontSize: 28,
-    fontWeight: '700',
-    marginTop: 4,
-  },
-  bigValue: {
-    fontFamily: serifFont,
-    fontSize: 34,
-    fontWeight: '700',
-    marginTop: 4,
-  },
-  growth: {
-    fontSize: 14,
-    fontWeight: '700',
-    marginTop: 6,
   },
   row: {
     flexDirection: 'row',
