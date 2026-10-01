@@ -1,4 +1,4 @@
-import { useCallback, useState, type JSX } from 'react';
+import { useCallback, type JSX } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -21,27 +21,9 @@ import FormError from '../../components/FormError';
 import FormField from '../../components/FormField';
 import PrimaryButton from '../../components/PrimaryButton';
 import { useLanguage } from '../../context/LanguageContext';
-import { getBook } from '../../services/bookService';
-import { createSession, deleteSession, getSession, updateSession } from '../../services/sessionService';
+import { useSessionForm } from '../../hooks/useSessionForm';
 import { serifFont } from '../../theme/fonts';
 import { useThemeColors } from '../../theme/useThemeColors';
-import type { Book } from '../../types/book';
-import { getErrorMessage } from '../../utils/getErrorMessage';
-
-const DIGITS_REGEX = /^\d+$/;
-
-// Date au format de l'API (AAAA-MM-JJ) en heure locale : toISOString() passerait en UTC
-function toApiDate(date: Date): string {
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return date.getFullYear() + '-' + month + '-' + day;
-}
-
-// Inverse de toApiDate : 'AAAA-MM-JJ' → date locale (new Date('AAAA-MM-JJ') serait en UTC)
-function fromApiDate(text: string): Date {
-  const [year, month, day] = text.split('-').map(Number);
-  return new Date(year, month - 1, day);
-}
 
 // bookId : toujours fourni ; sessionId : seulement pour modifier une session existante
 export default function SessionFormScreen(): JSX.Element {
@@ -51,147 +33,71 @@ export default function SessionFormScreen(): JSX.Element {
   const { bookId: bookIdParam, sessionId: sessionIdParam } = useLocalSearchParams<{ bookId: string; sessionId?: string }>();
   const bookId = Number(bookIdParam);
   const sessionId = sessionIdParam === undefined ? null : Number(sessionIdParam);
-  const isEditing = sessionId !== null;
 
-  // Clé de ce qui est affiché : évite de montrer un instant l'ancien livre ou l'ancienne session
-  const formKey = bookId + '-' + (sessionId ?? 'new');
-
-  const [book, setBook] = useState<Book | null>(null);
-  const [loadedKey, setLoadedKey] = useState<string | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
-
-  const [date, setDate] = useState(new Date());
-  const [startPage, setStartPage] = useState('');
-  const [endPage, setEndPage] = useState('');
-  const [duration, setDuration] = useState('');
-  const [comment, setComment] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
+  // Chargement, champs, validation et appels à l'API : dans le hook
+  const {
+    book,
+    loadError,
+    isEditing,
+    date,
+    setDate,
+    startPage,
+    setStartPage,
+    endPage,
+    setEndPage,
+    duration,
+    setDuration,
+    comment,
+    setComment,
+    error,
+    isSaving,
+    isDeleting,
+    submit,
+    remove,
+  } = useSessionForm(bookId, sessionId);
 
   // Retour explicite vers la fiche du livre (dans des onglets, « retour » irait à la PAL)
   const goToBook = useCallback((): void => {
     router.navigate({ pathname: '/reader/book/[id]', params: { id: String(bookId) } });
   }, [bookId]);
 
-  // À chaque affichage : l'écran reste en mémoire dans les onglets, on repart d'un formulaire neuf
+  // Bouton retour d'Android : même destination que la flèche
   useFocusEffect(
     useCallback(() => {
-      let isActive = true;
-      Promise.all([getBook(bookId), sessionId === null ? null : getSession(sessionId)])
-        .then(([loadedBook, session]) => {
-          if (!isActive) return;
-          setBook(loadedBook);
-          setLoadError(null);
-          setError(null);
-          if (session !== null) {
-            // Modification : champs pré-remplis avec la session
-            setDate(fromApiDate(session.session_date));
-            setStartPage(String(session.start_page));
-            setEndPage(String(session.end_page));
-            setDuration(session.duration_minutes === null ? '' : String(session.duration_minutes));
-            setComment(session.comment ?? '');
-          } else {
-            // Création : on reprend là où la lecture s'est arrêtée (calculé par le serveur)
-            setDate(new Date());
-            setStartPage(String(loadedBook.current_page));
-            setEndPage('');
-            setDuration('');
-            setComment('');
-          }
-          setLoadedKey(formKey);
-        })
-        .catch((caught: unknown) => {
-          if (isActive) setLoadError(getErrorMessage(caught, t('sessionForm.loadError')));
-        });
-
-      // Bouton retour d'Android : même destination que la flèche
       const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
         goToBook();
         return true;
       });
-
-      return () => {
-        isActive = false;
-        subscription.remove();
-      };
-    }, [bookId, sessionId, formKey, goToBook, t]),
+      return () => subscription.remove();
+    }, [goToBook]),
   );
 
   async function handleSubmit(): Promise<void> {
-    if (book === null) return;
-
-    // Vérifications rapides ; le serveur refait toutes les vérifications
-    if (!DIGITS_REGEX.test(startPage) || !DIGITS_REGEX.test(endPage)) {
-      setError(t('sessionForm.missingPages'));
-      return;
-    }
-    const start = Number(startPage);
-    const end = Number(endPage);
-    if (end < start) {
-      setError(t('sessionForm.endBeforeStart'));
-      return;
-    }
-    if (book.total_pages && end > book.total_pages) {
-      setError(t('sessionForm.tooManyPages', { count: book.total_pages }));
-      return;
-    }
-    if (duration !== '' && (!DIGITS_REGEX.test(duration) || Number(duration) === 0)) {
-      setError(t('sessionForm.invalidDuration'));
-      return;
-    }
-
-    setError(null);
-    setIsSaving(true);
-    try {
-      const data = {
-        session_date: toApiDate(date),
-        start_page: start,
-        end_page: end,
-        duration_minutes: duration === '' ? null : Number(duration),
-        comment: comment.trim() === '' ? null : comment.trim(),
-      };
-      if (sessionId !== null) {
-        await updateSession(sessionId, data);
-      } else {
-        await createSession({ book_id: book.id, ...data });
-      }
-
-      // Dernière page atteinte : le serveur a passé le livre en « lu »
-      if (book.total_pages && end >= book.total_pages && book.status !== 'read') {
-        Alert.alert(t('sessionForm.finishedTitle'), t('sessionForm.finishedMessage', { title: book.title }), [
-          { text: t('common.ok'), onPress: goToBook },
-        ]);
-        return;
-      }
+    const result = await submit();
+    if (result === 'finished' && book !== null) {
+      Alert.alert(t('sessionForm.finishedTitle'), t('sessionForm.finishedMessage', { title: book.title }), [
+        { text: t('common.ok'), onPress: goToBook },
+      ]);
+    } else if (result === 'saved') {
       goToBook();
-    } catch (caught) {
-      setError(getErrorMessage(caught, t('sessionForm.saveFailed')));
-    } finally {
-      setIsSaving(false);
     }
   }
 
   function confirmDelete(): void {
-    if (sessionId === null) return;
     Alert.alert(t('sessionForm.deleteTitle'), t('sessionForm.deleteMessage'), [
       { text: t('common.cancel'), style: 'cancel' },
       {
         text: t('common.delete'),
         style: 'destructive',
-        onPress: () => {
-          setIsDeleting(true);
-          deleteSession(sessionId)
-            .then(goToBook)
-            .catch((caught: unknown) => setError(getErrorMessage(caught, t('sessionForm.deleteFailed'))))
-            .finally(() => setIsDeleting(false));
+        onPress: async () => {
+          if (await remove()) goToBook();
         },
       },
     ]);
   }
 
   // Affiché seulement quand ce qui est chargé correspond à ce qui est demandé
-  if (book === null || loadedKey !== formKey) {
+  if (book === null) {
     return (
       <View style={[styles.centered, { backgroundColor: colors.background }]}>
         {loadError !== null ? (
