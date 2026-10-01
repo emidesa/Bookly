@@ -103,7 +103,7 @@ export default function AdminStatsScreen(): JSX.Element {
   return (
     <ScrollView
       style={{ backgroundColor: colors.background }}
-      contentContainerStyle={[styles.content, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 32 }]}
+      contentContainerStyle={[styles.content, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 120 }]}
       refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={() => void refresh()} tintColor={colors.primary} />}
     >
       <ScreenHeader overline={t('admin.menu')} title={t('adminStats.title')} right={<AdminMenuButton current="stats" />} />

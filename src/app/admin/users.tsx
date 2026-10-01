@@ -1,6 +1,5 @@
-import { useCallback, useState, type JSX } from 'react';
+import { useState, type JSX } from 'react';
 import { ActivityIndicator, Alert, FlatList, Keyboard, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from 'react-native';
-import { useFocusEffect } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AdminMenuButton from '../../components/AdminMenuButton';
@@ -8,6 +7,7 @@ import EmptyState from '../../components/EmptyState';
 import ScreenHeader from '../../components/ScreenHeader';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { useFocusData } from '../../hooks/useFocusData';
 import { getLocaleTag, type TranslationKey } from '../../i18n/i18n';
 import { deleteUser, getUsers } from '../../services/adminService';
 import { serifFont } from '../../theme/fonts';
@@ -37,35 +37,17 @@ export default function AdminUsersScreen(): JSX.Element {
   const { user: currentUser, logout } = useAuth();
   const { t } = useLanguage();
 
-  const [users, setUsers] = useState<AdminUser[] | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  // Rechargé à chaque affichage ; tirer la liste vers le bas pour rafraîchir
+  const {
+    data: users,
+    setData: setUsers,
+    loadError,
+    loadedAt: updatedAt,
+    isRefreshing,
+    reload: loadUsers,
+    refresh,
+  } = useFocusData(getUsers, t('adminUsers.loadError'));
   const [query, setQuery] = useState('');
-
-  const loadUsers = useCallback(async (): Promise<void> => {
-    try {
-      setUsers(await getUsers());
-      setUpdatedAt(new Date());
-      setLoadError(null);
-    } catch (error) {
-      setLoadError(getErrorMessage(error, t('adminUsers.loadError')));
-    }
-  }, [t]);
-
-  // Rechargé à chaque affichage de l'écran
-  useFocusEffect(
-    useCallback(() => {
-      void loadUsers();
-    }, [loadUsers]),
-  );
-
-  // Tirer la liste vers le bas pour rafraîchir
-  async function refresh(): Promise<void> {
-    setIsRefreshing(true);
-    await loadUsers();
-    setIsRefreshing(false);
-  }
 
   function confirmDelete(target: AdminUser): void {
     const isSelf = currentUser !== null && target.id === currentUser.id;
@@ -203,7 +185,7 @@ export default function AdminUsersScreen(): JSX.Element {
   return (
     <FlatList
       style={{ backgroundColor: colors.background }}
-      contentContainerStyle={[styles.list, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 32 }]}
+      contentContainerStyle={[styles.list, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 120 }]}
       data={visibleUsers}
       keyExtractor={(item) => String(item.id)}
       renderItem={renderUser}
