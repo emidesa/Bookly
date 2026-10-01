@@ -6,6 +6,7 @@ import { SymbolView } from 'expo-symbols';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import BookPreviewModal from '../../components/BookPreviewModal';
 import PrimaryButton from '../../components/PrimaryButton';
+import { useLanguage } from '../../context/LanguageContext';
 import { useLibrary } from '../../hooks/useLibrary';
 import { ApiError } from '../../services/api';
 import { findByIsbn } from '../../services/bookService';
@@ -29,6 +30,7 @@ function isIsbn(code: string): boolean {
 export default function ScannerScreen(): JSX.Element {
   const colors = useThemeColors();
   const insets = useSafeAreaInsets();
+  const { t } = useLanguage();
   const isFocused = useIsFocused(); // caméra éteinte quand on quitte l'onglet
   const [permission, requestPermission] = useCameraPermissions();
 
@@ -50,7 +52,7 @@ export default function ScannerScreen(): JSX.Element {
 
     const code = result.data;
     if (!isIsbn(code)) {
-      setMessage("Ce code-barres n'est pas celui d'un livre.");
+      setMessage(t('scanner.notBook'));
       setScanState('notFound');
       return;
     }
@@ -60,9 +62,9 @@ export default function ScannerScreen(): JSX.Element {
       // GET /api/google/isbn/:isbn
       setFoundBook(await findByIsbn(code));
     } catch (error) {
-      let text = getErrorMessage(error, 'La recherche est indisponible, réessaie plus tard.');
+      let text = getErrorMessage(error, t('search.unavailable'));
       if (error instanceof ApiError && error.status === 404) {
-        text = 'Aucun livre trouvé pour le code ' + code + '.';
+        text = t('scanner.notFound', { code: code });
       }
       setMessage(text);
       setScanState('notFound');
@@ -84,13 +86,13 @@ export default function ScannerScreen(): JSX.Element {
 
   // Caméra non autorisée : explication + bouton
   if (!permission.granted) {
-    let buttonLabel = 'Autoriser la caméra';
+    let buttonLabel = t('scanner.allowCamera');
     let onPress = (): void => {
       void requestPermission();
     };
     // Refus définitif : seul l'utilisateur peut changer ça dans les réglages
     if (!permission.canAskAgain) {
-      buttonLabel = 'Ouvrir les réglages';
+      buttonLabel = t('scanner.openSettings');
       onPress = (): void => {
         void Linking.openSettings();
       };
@@ -100,10 +102,10 @@ export default function ScannerScreen(): JSX.Element {
       <View style={[styles.container, styles.permission, { backgroundColor: colors.background }]}>
         <SymbolView name={{ ios: 'camera', android: 'photo_camera' }} size={48} tintColor={colors.primary} />
         <Text style={[styles.permissionTitle, { color: colors.text }]} accessibilityRole="header">
-          Scanner un livre
+          {t('scanner.title')}
         </Text>
         <Text style={[styles.permissionText, { color: colors.textSecondary }]}>
-          Autorise la caméra pour scanner le code-barres au dos de tes livres et les ajouter à ta PAL.
+          {t('scanner.permissionText')}
         </Text>
         <View style={styles.permissionButton}>
           <PrimaryButton label={buttonLabel} onPress={onPress} />
@@ -125,9 +127,9 @@ export default function ScannerScreen(): JSX.Element {
     };
   }
 
-  let torchLabel = 'Allumer la lampe';
+  let torchLabel = t('scanner.torchOn');
   if (isTorchOn) {
-    torchLabel = 'Éteindre la lampe';
+    torchLabel = t('scanner.torchOff');
   }
 
   return (
@@ -140,16 +142,16 @@ export default function ScannerScreen(): JSX.Element {
           barcodeScannerSettings={{ barcodeTypes: ['ean13'] }} // code-barres des livres
           onBarcodeScanned={onScanned}
           accessible={true}
-          accessibilityLabel="Caméra. Place le code-barres au dos du livre dans le cadre."
+          accessibilityLabel={t('scanner.cameraLabel')}
         />
       )}
 
       {/* Consigne en haut */}
       <View style={[styles.topBubble, { backgroundColor: cameraColors.overlay, top: insets.top + 16 }]}>
         <Text style={[styles.topTitle, { color: cameraColors.text }]} accessibilityRole="header">
-          Scanner un livre
+          {t('scanner.title')}
         </Text>
-        <Text style={[styles.topHint, { color: cameraColors.text }]}>Place le code-barres dans le cadre</Text>
+        <Text style={[styles.topHint, { color: cameraColors.text }]}>{t('scanner.hint')}</Text>
       </View>
 
       {/* Cadre de visée (décoratif) */}
@@ -161,7 +163,7 @@ export default function ScannerScreen(): JSX.Element {
       {scanState === 'searching' && foundBook === null && (
         <View style={[styles.statusBubble, { backgroundColor: cameraColors.overlay, bottom: insets.bottom + 180 }]}>
           <ActivityIndicator color={cameraColors.text} />
-          <Text style={[styles.statusText, { color: cameraColors.text }]}>Recherche du livre...</Text>
+          <Text style={[styles.statusText, { color: cameraColors.text }]}>{t('scanner.searching')}</Text>
         </View>
       )}
 
@@ -172,7 +174,7 @@ export default function ScannerScreen(): JSX.Element {
             {message}
           </Text>
           <View style={styles.scanAgainButton}>
-            <PrimaryButton label="Scanner un autre livre" onPress={scanAgain} />
+            <PrimaryButton label={t('scanner.scanAgain')} onPress={scanAgain} />
           </View>
         </View>
       )}

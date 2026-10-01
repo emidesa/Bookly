@@ -1,5 +1,6 @@
 import type { JSX } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { useLanguage } from '../context/LanguageContext';
 import { useThemeColors } from '../theme/useThemeColors';
 
 interface ProgressBarProps {
@@ -10,13 +11,14 @@ interface ProgressBarProps {
 // Barre de progression de lecture
 export default function ProgressBar({ percent, showPercent = true }: ProgressBarProps): JSX.Element {
   const colors = useThemeColors();
+  const { t } = useLanguage();
 
   return (
     <View
       style={styles.row}
       accessible={true}
       accessibilityRole="progressbar"
-      accessibilityLabel="Progression"
+      accessibilityLabel={t('progress.label')}
       accessibilityValue={{ min: 0, max: 100, now: percent }}
     >
       <View style={[styles.track, { backgroundColor: colors.progressTrack }]}>

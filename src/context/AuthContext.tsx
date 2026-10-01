@@ -11,6 +11,7 @@ import {
 } from 'react';
 import { Alert } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
+import { translate } from '../i18n/i18n';
 import { api, ApiError, setAuthToken, setUnauthorizedHandler } from '../services/api';
 import type { AuthResponse, LoginBody, RegisterBody, UpdateProfileBody, User } from '../types/user';
 
@@ -95,11 +96,11 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
       if (statusRef.current !== 'signedIn' || isAlertShown.current) return;
       isAlertShown.current = true;
       Alert.alert(
-        'Session expirée',
-        'Ta session a expiré, reconnecte-toi.',
+        translate('auth.sessionExpiredTitle'),
+        translate('auth.sessionExpiredMessage'),
         [
           {
-            text: 'OK',
+            text: translate('common.ok'),
             onPress: () => {
               isAlertShown.current = false;
               void clearSession();

@@ -1,3 +1,4 @@
+import type { TranslationKey } from '../i18n/i18n';
 import { Book, BookStatus } from '../types/book';
 
 // Filtres et tri de la PAL : faits dans l'appli, sans appel à l'API
@@ -8,18 +9,18 @@ export type SortOption = 'recent' | 'title' | 'author';
 export const statusFilters: StatusFilter[] = ['all', 'to_read', 'reading', 'read'];
 export const sortOptions: SortOption[] = ['recent', 'title', 'author'];
 
-// Libellés des filtres (au pluriel : « Lus »)
-export const filterLabels: Record<StatusFilter, string> = {
-  all: 'Tous',
-  to_read: 'À lire',
-  reading: 'En cours',
-  read: 'Lus',
+// Clés de traduction des filtres (au pluriel en français : « Lus »)
+export const filterKeys: Record<StatusFilter, TranslationKey> = {
+  all: 'filters.all',
+  to_read: 'filters.to_read',
+  reading: 'filters.reading',
+  read: 'filters.read',
 };
 
-export const sortLabels: Record<SortOption, string> = {
-  recent: 'Récents',
-  title: 'Titre',
-  author: 'Auteur',
+export const sortKeys: Record<SortOption, TranslationKey> = {
+  recent: 'sort.recent',
+  title: 'sort.title',
+  author: 'sort.author',
 };
 
 // Filtre par statut puis trie la PAL

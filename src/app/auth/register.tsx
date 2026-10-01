@@ -6,15 +6,14 @@ import FormError from '../../components/FormError';
 import FormField from '../../components/FormField';
 import PrimaryButton from '../../components/PrimaryButton';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { ApiError } from '../../services/api';
 import { useThemeColors } from '../../theme/useThemeColors';
-
-// Mêmes règles que le backend, annoncées avant la saisie
-const PASSWORD_HINT = '8 caractères minimum, une majuscule, une minuscule et un chiffre.';
 
 export default function RegisterScreen(): JSX.Element {
   const colors = useThemeColors();
   const { register } = useAuth();
+  const { t } = useLanguage();
   const emailRef = useRef<TextInput>(null);
   const passwordRef = useRef<TextInput>(null);
   const confirmRef = useRef<TextInput>(null);
@@ -28,12 +27,12 @@ export default function RegisterScreen(): JSX.Element {
 
   async function handleSubmit(): Promise<void> {
     if (firstName.trim() === '' || email.trim() === '' || password === '' || confirmPassword === '') {
-      setError('Remplis tous les champs.');
+      setError(t('register.missingFields'));
       return;
     }
     // Vérifié ici : inutile d'appeler le serveur si les deux saisies diffèrent
     if (password !== confirmPassword) {
-      setError('Les deux mots de passe ne correspondent pas.');
+      setError(t('register.passwordMismatch'));
       return;
     }
 
@@ -44,20 +43,20 @@ export default function RegisterScreen(): JSX.Element {
       await register({ first_name: firstName.trim(), email: email.trim(), password });
       router.replace('/');
     } catch (caught) {
-      setError(caught instanceof ApiError ? caught.message : 'Une erreur est survenue.');
+      setError(caught instanceof ApiError ? caught.message : t('common.unknownError'));
     } finally {
       setIsLoading(false);
     }
   }
 
   return (
-    <AuthLayout title="Créer votre compte" subtitle="Commencez à construire votre pile à lire.">
+    <AuthLayout title={t('register.title')} subtitle={t('register.subtitle')}>
       <FormField
-        label="Prénom"
+        label={t('auth.firstName')}
         icon={{ ios: 'person', android: 'person' }}
         value={firstName}
         onChangeText={setFirstName}
-        placeholder="Camille"
+        placeholder={t('auth.firstNamePlaceholder')}
         autoCapitalize="words"
         autoComplete="given-name"
         textContentType="givenName"
@@ -68,11 +67,11 @@ export default function RegisterScreen(): JSX.Element {
       />
       <FormField
         ref={emailRef}
-        label="Adresse email"
+        label={t('auth.email')}
         icon={{ ios: 'envelope', android: 'mail' }}
         value={email}
         onChangeText={setEmail}
-        placeholder="lectrice@exemple.fr"
+        placeholder={t('auth.emailPlaceholder')}
         keyboardType="email-address"
         autoCapitalize="none"
         autoCorrect={false}
@@ -84,9 +83,9 @@ export default function RegisterScreen(): JSX.Element {
       />
       <FormField
         ref={passwordRef}
-        label="Mot de passe"
+        label={t('auth.password')}
         icon={{ ios: 'lock', android: 'lock' }}
-        hint={PASSWORD_HINT}
+        hint={t('register.passwordHint')}
         value={password}
         onChangeText={setPassword}
         placeholder="••••••••••"
@@ -100,7 +99,7 @@ export default function RegisterScreen(): JSX.Element {
       />
       <FormField
         ref={confirmRef}
-        label="Confirmer le mot de passe"
+        label={t('register.confirmPassword')}
         icon={{ ios: 'lock', android: 'lock' }}
         value={confirmPassword}
         onChangeText={setConfirmPassword}
@@ -116,14 +115,14 @@ export default function RegisterScreen(): JSX.Element {
       <FormError message={error} />
 
       <View style={styles.submit}>
-        <PrimaryButton label="S'inscrire" onPress={() => void handleSubmit()} isLoading={isLoading} />
+        <PrimaryButton label={t('register.submit')} onPress={() => void handleSubmit()} isLoading={isLoading} />
       </View>
 
       <View style={styles.footer}>
-        <Text style={[styles.footerText, { color: colors.textSecondary }]}>Déjà un compte ?</Text>
+        <Text style={[styles.footerText, { color: colors.textSecondary }]}>{t('register.hasAccount')}</Text>
         <Link href="/auth/login" replace asChild>
-          <Pressable accessibilityRole="link" accessibilityLabel="Se connecter" hitSlop={12} style={styles.footerLink}>
-            <Text style={[styles.footerLinkText, { color: colors.primary }]}>Se connecter</Text>
+          <Pressable accessibilityRole="link" accessibilityLabel={t('register.login')} hitSlop={12} style={styles.footerLink}>
+            <Text style={[styles.footerLinkText, { color: colors.primary }]}>{t('register.login')}</Text>
           </Pressable>
         </Link>
       </View>

@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { Alert } from 'react-native';
 import { useFocusEffect } from 'expo-router';
+import { useLanguage } from '../context/LanguageContext';
 import { ApiError } from '../services/api';
 import { addBook, deleteBook, getBooks } from '../services/bookService';
 import { Book, GoogleBookResult } from '../types/book';
@@ -17,6 +18,7 @@ interface LibraryActions {
 export function useLibrary(): LibraryActions {
   const [books, setBooks] = useState<Book[]>([]);
   const [addingId, setAddingId] = useState<string | null>(null);
+  const { t } = useLanguage();
 
   const reload = useCallback(async (): Promise<void> => {
     try {
@@ -48,7 +50,7 @@ export function useLibrary(): LibraryActions {
         await reload();
         return;
       }
-      Alert.alert('Ajout impossible', getErrorMessage(error, "Impossible d'ajouter ce livre."));
+      Alert.alert(t('library.addFailedTitle'), getErrorMessage(error, t('library.addFailed')));
     } finally {
       setAddingId(null);
     }
@@ -62,17 +64,17 @@ export function useLibrary(): LibraryActions {
       return;
     }
 
-    Alert.alert('Retirer « ' + book.title + ' » de ta PAL ?', 'Ses sessions de lecture seront aussi supprimées.', [
-      { text: 'Annuler', style: 'cancel' },
+    Alert.alert(t('library.removeTitle', { title: book.title }), t('library.removeMessage'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Retirer',
+        text: t('library.remove'),
         style: 'destructive',
         onPress: async () => {
           try {
             await deleteBook(libraryBook.id);
             setBooks((current) => current.filter((item) => item.id !== libraryBook.id));
           } catch (error) {
-            Alert.alert('Suppression impossible', getErrorMessage(error, 'Impossible de retirer ce livre.'));
+            Alert.alert(t('library.removeFailedTitle'), getErrorMessage(error, t('library.removeFailed')));
           }
         },
       },

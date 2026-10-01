@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import BookCover from './BookCover';
 import LibraryButton from './LibraryButton';
 import { serifFont } from '../theme/fonts';
+import { useLanguage } from '../context/LanguageContext';
 import { useThemeColors } from '../theme/useThemeColors';
 import { GoogleBookResult } from '../types/book';
 
@@ -19,16 +20,17 @@ interface SearchBookCardProps {
 // Livre trouvé (recherche ou tendance) : appui = résumé, bouton = ajouter / retirer de la PAL
 export default function SearchBookCard({ book, inLibrary, isAdding, onAdd, onRemove, onOpen, rank }: SearchBookCardProps): JSX.Element {
   const colors = useThemeColors();
+  const { t } = useLanguage();
 
   // Phrase lue par VoiceOver pour la zone cliquable
   let label = book.title;
   if (book.author !== null) {
-    label = label + ', de ' + book.author;
+    label = label + ', ' + t('common.by', { author: book.author });
   }
   if (rank !== undefined) {
-    label = 'Numéro ' + rank + ' des tendances, ' + label;
+    label = t('search.rankPrefix', { rank: rank }) + label;
   }
-  label = label + '. Voir le résumé';
+  label = label + t('search.seeSummary');
 
   return (
     <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.separator }]}>

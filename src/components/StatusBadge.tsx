@@ -1,7 +1,8 @@
 import type { JSX } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { useLanguage } from '../context/LanguageContext';
 import { useThemeColors } from '../theme/useThemeColors';
-import { BookStatus, statusLabels } from '../types/book';
+import { BookStatus, statusKeys } from '../types/book';
 
 interface StatusBadgeProps {
   status: BookStatus;
@@ -10,6 +11,7 @@ interface StatusBadgeProps {
 // Pastille colorée : gris « À lire », ambre « En cours », vert « Lu »
 export default function StatusBadge({ status }: StatusBadgeProps): JSX.Element {
   const colors = useThemeColors();
+  const { t } = useLanguage();
 
   let backgroundColor = colors.badgeToReadBackground;
   let textColor = colors.badgeToReadText;
@@ -24,7 +26,7 @@ export default function StatusBadge({ status }: StatusBadgeProps): JSX.Element {
 
   return (
     <View style={[styles.badge, { backgroundColor: backgroundColor }]}>
-      <Text style={[styles.label, { color: textColor }]}>{statusLabels[status]}</Text>
+      <Text style={[styles.label, { color: textColor }]}>{t(statusKeys[status])}</Text>
     </View>
   );
 }

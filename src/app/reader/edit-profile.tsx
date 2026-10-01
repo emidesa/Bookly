@@ -7,6 +7,7 @@ import FormError from '../../components/FormError';
 import FormField from '../../components/FormField';
 import PrimaryButton from '../../components/PrimaryButton';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { ApiError } from '../../services/api';
 import { serifFont } from '../../theme/fonts';
 import { useThemeColors } from '../../theme/useThemeColors';
@@ -20,6 +21,7 @@ export default function EditProfileScreen(): JSX.Element {
   const colors = useThemeColors();
   const insets = useSafeAreaInsets();
   const { user, updateProfile } = useAuth();
+  const { t } = useLanguage();
   const emailRef = useRef<TextInput>(null);
 
   const [firstName, setFirstName] = useState(user?.first_name ?? '');
@@ -40,7 +42,7 @@ export default function EditProfileScreen(): JSX.Element {
 
   async function handleSubmit(): Promise<void> {
     if (firstName.trim() === '' || email.trim() === '') {
-      setError('Remplis ton prénom et ton email.');
+      setError(t('editProfile.missingFields'));
       return;
     }
 
@@ -50,7 +52,7 @@ export default function EditProfileScreen(): JSX.Element {
       await updateProfile({ first_name: firstName.trim(), email: email.trim() });
       goToProfile();
     } catch (caught) {
-      setError(caught instanceof ApiError ? caught.message : 'Une erreur est survenue.');
+      setError(caught instanceof ApiError ? caught.message : t('common.unknownError'));
     } finally {
       setIsLoading(false);
     }
@@ -69,19 +71,19 @@ export default function EditProfileScreen(): JSX.Element {
           <Pressable
             onPress={goToProfile}
             accessibilityRole="button"
-            accessibilityLabel="Retour au profil"
+            accessibilityLabel={t('editProfile.backToProfile')}
             hitSlop={12}
             style={[styles.backButton, { backgroundColor: colors.surface, borderColor: colors.separator }]}
           >
             <SymbolView name={{ ios: 'chevron.left', android: 'arrow_back' }} size={20} tintColor={colors.primary} />
           </Pressable>
           <Text style={[styles.title, { color: colors.text }]} accessibilityRole="header">
-            Mes informations
+            {t('profile.myInfo')}
           </Text>
         </View>
 
         <FormField
-          label="Prénom"
+          label={t('auth.firstName')}
           icon={{ ios: 'person', android: 'person' }}
           value={firstName}
           onChangeText={setFirstName}
@@ -95,7 +97,7 @@ export default function EditProfileScreen(): JSX.Element {
         />
         <FormField
           ref={emailRef}
-          label="Adresse email"
+          label={t('auth.email')}
           icon={{ ios: 'envelope', android: 'mail' }}
           value={email}
           onChangeText={setEmail}
@@ -111,7 +113,7 @@ export default function EditProfileScreen(): JSX.Element {
         <FormError message={error} />
 
         <View style={styles.submit}>
-          <PrimaryButton label="Enregistrer" onPress={() => void handleSubmit()} isLoading={isLoading} />
+          <PrimaryButton label={t('common.save')} onPress={() => void handleSubmit()} isLoading={isLoading} />
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

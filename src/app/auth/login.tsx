@@ -6,12 +6,14 @@ import FormError from '../../components/FormError';
 import FormField from '../../components/FormField';
 import PrimaryButton from '../../components/PrimaryButton';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { ApiError } from '../../services/api';
 import { useThemeColors } from '../../theme/useThemeColors';
 
 export default function LoginScreen(): JSX.Element {
   const colors = useThemeColors();
   const { login } = useAuth();
+  const { t } = useLanguage();
   const passwordRef = useRef<TextInput>(null);
 
   const [email, setEmail] = useState('');
@@ -21,7 +23,7 @@ export default function LoginScreen(): JSX.Element {
 
   async function handleSubmit(): Promise<void> {
     if (email.trim() === '' || password === '') {
-      setError('Renseigne ton email et ton mot de passe.');
+      setError(t('login.missingFields'));
       return;
     }
 
@@ -32,20 +34,20 @@ export default function LoginScreen(): JSX.Element {
       // L'accueil redirige selon le rôle
       router.replace('/');
     } catch (caught) {
-      setError(caught instanceof ApiError ? caught.message : 'Une erreur est survenue.');
+      setError(caught instanceof ApiError ? caught.message : t('common.unknownError'));
     } finally {
       setIsLoading(false);
     }
   }
 
   return (
-    <AuthLayout title="Bon retour parmi nous" subtitle="Retrouvez vos livres et votre progression.">
+    <AuthLayout title={t('login.title')} subtitle={t('login.subtitle')}>
       <FormField
-        label="Adresse email"
+        label={t('auth.email')}
         icon={{ ios: 'envelope', android: 'mail' }}
         value={email}
         onChangeText={setEmail}
-        placeholder="lectrice@exemple.fr"
+        placeholder={t('auth.emailPlaceholder')}
         keyboardType="email-address"
         autoCapitalize="none"
         autoCorrect={false}
@@ -57,7 +59,7 @@ export default function LoginScreen(): JSX.Element {
       />
       <FormField
         ref={passwordRef}
-        label="Mot de passe"
+        label={t('auth.password')}
         icon={{ ios: 'lock', android: 'lock' }}
         value={password}
         onChangeText={setPassword}
@@ -73,14 +75,14 @@ export default function LoginScreen(): JSX.Element {
       <FormError message={error} />
 
       <View style={styles.submit}>
-        <PrimaryButton label="Se connecter" onPress={() => void handleSubmit()} isLoading={isLoading} />
+        <PrimaryButton label={t('login.submit')} onPress={() => void handleSubmit()} isLoading={isLoading} />
       </View>
 
       <View style={styles.footer}>
-        <Text style={[styles.footerText, { color: colors.textSecondary }]}>Nouveau sur Bookly ?</Text>
+        <Text style={[styles.footerText, { color: colors.textSecondary }]}>{t('login.newUser')}</Text>
         <Link href="/auth/register" replace asChild>
-          <Pressable accessibilityRole="link" accessibilityLabel="Créer un compte" hitSlop={12} style={styles.footerLink}>
-            <Text style={[styles.footerLinkText, { color: colors.primary }]}>Créer un compte</Text>
+          <Pressable accessibilityRole="link" accessibilityLabel={t('login.createAccount')} hitSlop={12} style={styles.footerLink}>
+            <Text style={[styles.footerLinkText, { color: colors.primary }]}>{t('login.createAccount')}</Text>
           </Pressable>
         </Link>
       </View>

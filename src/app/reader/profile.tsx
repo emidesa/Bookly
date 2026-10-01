@@ -5,24 +5,33 @@ import { SymbolView, type AndroidSymbol, type SFSymbol } from 'expo-symbols';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AdminMenuButton from '../../components/AdminMenuButton';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { useThemeMode } from '../../context/ThemeContext';
+import { getLocaleTag, languages, type Language, type TranslationKey } from '../../i18n/i18n';
 import { api } from '../../services/api';
 import { serifFont } from '../../theme/fonts';
 import { useThemeColors } from '../../theme/useThemeColors';
 import type { UserStats } from '../../types/stats';
 import type { Role } from '../../types/user';
+import { showOptionsMenu } from '../../utils/showOptionsMenu';
 
-// Libellés de la maquette
-const roleLabels: Record<Role, string> = {
-  reader: 'Lectrice',
-  admin: 'Lectrice · Administratrice',
+// Clés des libellés de la maquette
+const roleKeys: Record<Role, TranslationKey> = {
+  reader: 'profile.roles.reader',
+  admin: 'profile.roles.admin',
+};
+
+// Nom de chaque langue, écrit dans cette langue (« Français », « English »)
+const languageKeys: Record<Language, TranslationKey> = {
+  fr: 'languages.fr',
+  en: 'languages.en',
 };
 
 type SymbolName = { ios: SFSymbol; android: AndroidSymbol };
 
 // « 6842 » devient « 6 842 » ; tiret tant que la valeur n'est pas connue
 function formatCount(value: number | undefined): string {
-  return value === undefined ? '–' : value.toLocaleString('fr-FR');
+  return value === undefined ? '–' : value.toLocaleString(getLocaleTag());
 }
 
 export default function ProfileScreen(): JSX.Element {
@@ -30,6 +39,7 @@ export default function ProfileScreen(): JSX.Element {
   const insets = useSafeAreaInsets();
   const { user, logout } = useAuth();
   const { isDark, setDarkMode } = useThemeMode();
+  const { t, language, setLanguage } = useLanguage();
   const [stats, setStats] = useState<UserStats | null>(null);
 
   // Rechargé à chaque retour sur l'onglet (ex. après une nouvelle session)
@@ -51,16 +61,24 @@ export default function ProfileScreen(): JSX.Element {
   );
 
   function confirmLogout(): void {
-    Alert.alert('Se déconnecter', 'Tu devras te reconnecter pour retrouver ta PAL.', [
-      { text: 'Annuler', style: 'cancel' },
+    Alert.alert(t('profile.logout'), t('profile.logoutMessage'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Se déconnecter',
+        text: t('profile.logout'),
         style: 'destructive',
         onPress: () => {
           void logout().then(() => router.replace('/auth/login'));
         },
       },
     ]);
+  }
+
+  // Menu natif : Français / English
+  function openLanguageMenu(): void {
+    const labels = languages.map((item) => t(languageKeys[item]));
+    showOptionsMenu(t('profile.language'), labels, languages.indexOf(language), (index) => {
+      setLanguage(languages[index]);
+    });
   }
 
   if (!user) {
@@ -75,7 +93,7 @@ export default function ProfileScreen(): JSX.Element {
     return (
       <View
         accessible
-        accessibilityLabel={value === undefined ? label + ' : chargement' : text + ' ' + label}
+        accessibilityLabel={value === undefined ? t('profile.statLoading', { label: label }) : text + ' ' + label}
         style={[styles.statCard, { backgroundColor: colors.surface, borderColor: colors.separator }]}
       >
         <View style={[styles.iconBox, { backgroundColor: iconBackground }]}>
@@ -96,7 +114,7 @@ export default function ProfileScreen(): JSX.Element {
     >
       <View style={styles.header}>
         <Text style={[styles.title, { color: colors.text }]} accessibilityRole="header">
-          Mon profil
+          {t('profile.title')}
         </Text>
         {/* Menu réservé aux administrateurs */}
         {isAdmin ? <AdminMenuButton /> : null}
@@ -114,15 +132,15 @@ export default function ProfileScreen(): JSX.Element {
         <Text style={[styles.name, { color: colors.text }]}>{user.first_name}</Text>
         <Text style={[styles.email, { color: colors.text }]}>{user.email}</Text>
         <View style={[styles.roleBadge, { backgroundColor: colors.surfaceElevated }]}>
-          <Text style={[styles.roleText, { color: colors.textSecondary }]} accessibilityLabel={'Rôle : ' + roleLabels[user.role]}>
-            {roleLabels[user.role]}
+          <Text style={[styles.roleText, { color: colors.textSecondary }]} accessibilityLabel={t('profile.roleLabel', { role: t(roleKeys[user.role]) })}>
+            {t(roleKeys[user.role])}
           </Text>
         </View>
       </View>
 
       <View style={styles.statsRow}>
-        {renderStatCard(stats?.books_read, 'livres lus', { ios: 'book', android: 'menu_book' }, colors.primarySoft, colors.primary)}
-        {renderStatCard(stats?.pages_read, 'pages lues', { ios: 'doc.text', android: 'description' }, colors.accentSoft, colors.accentText)}
+        {renderStatCard(stats?.books_read, t('profile.booksRead'), { ios: 'book', android: 'menu_book' }, colors.primarySoft, colors.primary)}
+        {renderStatCard(stats?.pages_read, t('profile.pagesRead'), { ios: 'doc.text', android: 'description' }, colors.accentSoft, colors.accentText)}
       </View>
 
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.separator }]}>
@@ -132,32 +150,49 @@ export default function ProfileScreen(): JSX.Element {
             <SymbolView name={{ ios: 'moon', android: 'dark_mode' }} size={20} tintColor={colors.primary} />
           </View>
           <View style={styles.settingTexts} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden={true}>
-            <Text style={[styles.settingTitle, { color: colors.text }]}>Mode sombre</Text>
-            <Text style={[styles.settingSubtitle, { color: colors.textSecondary }]}>Choix mémorisé sur ce téléphone</Text>
+            <Text style={[styles.settingTitle, { color: colors.text }]}>{t('profile.darkMode')}</Text>
+            <Text style={[styles.settingSubtitle, { color: colors.textSecondary }]}>{t('profile.savedOnDevice')}</Text>
           </View>
           <Switch
             value={isDark}
             onValueChange={setDarkMode}
-            accessibilityLabel="Mode sombre"
+            accessibilityLabel={t('profile.darkMode')}
             trackColor={{ false: colors.inputBorder, true: colors.primary }}
             ios_backgroundColor={colors.inputBorder}
             style={styles.switch}
           />
         </View>
         <View style={[styles.divider, { backgroundColor: colors.separator }]} />
+        {/* Langue : choix mémorisé par le LanguageContext */}
+        <Pressable
+          onPress={openLanguageMenu}
+          accessibilityRole="button"
+          accessibilityLabel={t('profile.languageLabel', { language: t(languageKeys[language]) })}
+          style={styles.settingRow}
+        >
+          <View style={[styles.iconBox, { backgroundColor: colors.primarySoft }]}>
+            <SymbolView name={{ ios: 'globe', android: 'language' }} size={20} tintColor={colors.primary} />
+          </View>
+          <View style={styles.settingTexts}>
+            <Text style={[styles.settingTitle, { color: colors.text }]}>{t('profile.language')}</Text>
+            <Text style={[styles.settingSubtitle, { color: colors.textSecondary }]}>{t(languageKeys[language])}</Text>
+          </View>
+          <SymbolView name={{ ios: 'chevron.right', android: 'chevron_right' }} size={16} tintColor={colors.text} />
+        </Pressable>
+        <View style={[styles.divider, { backgroundColor: colors.separator }]} />
         <Pressable
           onPress={() => router.push('/reader/edit-profile')}
           accessibilityRole="button"
-          accessibilityLabel="Mes informations"
-          accessibilityHint="Modifier mon prénom et mon email"
+          accessibilityLabel={t('profile.myInfo')}
+          accessibilityHint={t('profile.myInfoHint')}
           style={styles.settingRow}
         >
           <View style={[styles.iconBox, { backgroundColor: colors.primarySoft }]}>
             <SymbolView name={{ ios: 'envelope', android: 'mail' }} size={20} tintColor={colors.primary} />
           </View>
           <View style={styles.settingTexts}>
-            <Text style={[styles.settingTitle, { color: colors.text }]}>Mes informations</Text>
-            <Text style={[styles.settingSubtitle, { color: colors.textSecondary }]}>Modifier mon prénom et mon email</Text>
+            <Text style={[styles.settingTitle, { color: colors.text }]}>{t('profile.myInfo')}</Text>
+            <Text style={[styles.settingSubtitle, { color: colors.textSecondary }]}>{t('profile.myInfoHint')}</Text>
           </View>
           <SymbolView name={{ ios: 'chevron.right', android: 'chevron_right' }} size={16} tintColor={colors.text} />
         </Pressable>
@@ -166,14 +201,14 @@ export default function ProfileScreen(): JSX.Element {
       <Pressable
         onPress={confirmLogout}
         accessibilityRole="button"
-        accessibilityLabel="Se déconnecter"
+        accessibilityLabel={t('profile.logout')}
         style={({ pressed }) => [
           styles.logoutButton,
           { backgroundColor: colors.errorSoft, borderColor: colors.error, opacity: pressed ? 0.7 : 1 },
         ]}
       >
         <SymbolView name={{ ios: 'rectangle.portrait.and.arrow.right', android: 'logout' }} size={18} tintColor={colors.error} />
-        <Text style={[styles.logoutText, { color: colors.error }]}>Se déconnecter</Text>
+        <Text style={[styles.logoutText, { color: colors.error }]}>{t('profile.logout')}</Text>
       </Pressable>
     </ScrollView>
   );

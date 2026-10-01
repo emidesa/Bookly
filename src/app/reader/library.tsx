@@ -8,15 +8,16 @@ import EmptyState from '../../components/EmptyState';
 import FilterChip from '../../components/FilterChip';
 import ScreenHeader from '../../components/ScreenHeader';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { getBooks } from '../../services/bookService';
 import { useThemeColors } from '../../theme/useThemeColors';
 import { Book } from '../../types/book';
 import { getErrorMessage } from '../../utils/getErrorMessage';
 import { showOptionsMenu } from '../../utils/showOptionsMenu';
 import {
-  filterLabels,
+  filterKeys,
   getVisibleBooks,
-  sortLabels,
+  sortKeys,
   sortOptions,
   statusFilters,
   type SortOption,
@@ -27,6 +28,7 @@ export default function LibraryScreen(): JSX.Element {
   const colors = useThemeColors();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [filter, setFilter] = useState<StatusFilter>('all');
   const [sort, setSort] = useState<SortOption>('recent');
 
@@ -41,11 +43,11 @@ export default function LibraryScreen(): JSX.Element {
       setBooks(await getBooks());
       setErrorMessage(null);
     } catch (error) {
-      setErrorMessage(getErrorMessage(error, 'Impossible de charger ta PAL.'));
+      setErrorMessage(getErrorMessage(error, t('library.loadError')));
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [t]);
 
   // Rechargée à chaque retour sur l'onglet (livre ajouté depuis la recherche, statut modifié...)
   useFocusEffect(
@@ -68,17 +70,17 @@ export default function LibraryScreen(): JSX.Element {
   const visibleBooks = getVisibleBooks(books, filter, sort);
 
   // Prénom de l'utilisateur connecté
-  let greeting = 'Bonjour';
+  let greeting = t('library.greeting');
   let initial = '?';
   if (user !== null && user.first_name !== '') {
-    greeting = 'Bonjour, ' + user.first_name;
+    greeting = t('library.greetingName', { name: user.first_name });
     initial = user.first_name.charAt(0).toUpperCase();
   }
 
   // Menu de tri natif (feuille sur iPhone, boîte de dialogue sur Android)
   function openSortMenu(): void {
-    const labels = sortOptions.map((option) => sortLabels[option]);
-    showOptionsMenu('Trier par', labels, sortOptions.indexOf(sort), (index) => {
+    const labels = sortOptions.map((option) => t(sortKeys[option]));
+    showOptionsMenu(t('library.sortBy'), labels, sortOptions.indexOf(sort), (index) => {
       setSort(sortOptions[index]);
     });
   }
@@ -87,12 +89,12 @@ export default function LibraryScreen(): JSX.Element {
     <View>
       <ScreenHeader
         overline={greeting}
-        title="Ma pile à lire"
+        title={t('library.title')}
         right={
           <Pressable
             onPress={() => router.push('/reader/profile')}
             accessibilityRole="button"
-            accessibilityLabel="Mon profil"
+            accessibilityLabel={t('library.myProfile')}
             style={[styles.avatar, { backgroundColor: colors.primarySoft, borderColor: colors.surface }]}
           >
             <Text style={[styles.avatarText, { color: colors.primary }]}>{initial}</Text>
@@ -111,11 +113,11 @@ export default function LibraryScreen(): JSX.Element {
             return (
               <FilterChip
                 key={item}
-                label={filterLabels[item]}
+                label={t(filterKeys[item])}
                 count={count}
                 selected={isSelected}
                 onPress={() => setFilter(item)}
-                accessibilityLabel={'Afficher : ' + filterLabels[item]}
+                accessibilityLabel={t('library.showFilter', { filter: t(filterKeys[item]) })}
               />
             );
           })}
@@ -124,7 +126,7 @@ export default function LibraryScreen(): JSX.Element {
         <Pressable
           onPress={openSortMenu}
           accessibilityRole="button"
-          accessibilityLabel={'Trier la liste, tri actuel : ' + sortLabels[sort]}
+          accessibilityLabel={t('library.sortButton', { sort: t(sortKeys[sort]) })}
           style={[styles.sortButton, { backgroundColor: colors.surface, borderColor: colors.separator }]}
         >
           <SymbolView name={{ ios: 'line.3.horizontal.decrease', android: 'filter_list' }} size={22} tintColor={colors.primary} />
@@ -136,19 +138,19 @@ export default function LibraryScreen(): JSX.Element {
   // Liste vide : chargement, erreur, PAL vide ou filtre sans résultat
   let emptyContent: JSX.Element;
   if (isLoading) {
-    emptyContent = <ActivityIndicator style={styles.loader} color={colors.primary} accessibilityLabel="Chargement de ta PAL" />;
+    emptyContent = <ActivityIndicator style={styles.loader} color={colors.primary} accessibilityLabel={t('library.loading')} />;
   } else if (errorMessage !== null) {
-    emptyContent = <EmptyState message={errorMessage} isError={true} buttonLabel="Réessayer" onPress={retry} />;
+    emptyContent = <EmptyState message={errorMessage} isError={true} buttonLabel={t('common.retry')} onPress={retry} />;
   } else if (books.length === 0) {
     emptyContent = (
       <EmptyState
-        message="Ta PAL est vide. Ajoute ton premier livre !"
-        buttonLabel="Trouver un livre"
+        message={t('library.empty')}
+        buttonLabel={t('library.findBook')}
         onPress={() => router.push('/reader/search')}
       />
     );
   } else {
-    emptyContent = <EmptyState message="Aucun livre dans cette catégorie" />;
+    emptyContent = <EmptyState message={t('library.emptyFilter')} />;
   }
 
   return (

@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import BookCover from './BookCover';
 import LibraryButton from './LibraryButton';
 import { serifFont } from '../theme/fonts';
+import { useLanguage } from '../context/LanguageContext';
 import { useThemeColors } from '../theme/useThemeColors';
 import { GoogleBookResult } from '../types/book';
 
@@ -21,6 +22,7 @@ interface BookPreviewModalProps {
 // Résumé d'un livre dans une feuille en bas de l'écran, à la hauteur de son contenu (85 % maximum)
 export default function BookPreviewModal({ book, inLibrary, isAdding, onAdd, onRemove, onClose }: BookPreviewModalProps): JSX.Element {
   const colors = useThemeColors();
+  const { t } = useLanguage();
   const insets = useSafeAreaInsets();
 
   return (
@@ -35,7 +37,7 @@ export default function BookPreviewModal({ book, inLibrary, isAdding, onAdd, onR
       {book !== null && (
         <View style={[styles.overlay, { backgroundColor: colors.overlay }]}>
           {/* Appui en dehors de la feuille : fermeture */}
-          <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityRole="button" accessibilityLabel="Fermer le résumé" />
+          <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityRole="button" accessibilityLabel={t('preview.close')} />
 
           <Animated.View
             entering={SlideInDown.duration(280)}
@@ -46,12 +48,12 @@ export default function BookPreviewModal({ book, inLibrary, isAdding, onAdd, onR
 
             <View style={styles.header}>
               <Text style={[styles.headerTitle, { color: colors.textSecondary }]} accessibilityRole="header">
-                Résumé du livre
+                {t('preview.title')}
               </Text>
               <Pressable
                 onPress={onClose}
                 accessibilityRole="button"
-                accessibilityLabel="Fermer le résumé"
+                accessibilityLabel={t('preview.close')}
                 hitSlop={8}
                 style={[styles.closeButton, { backgroundColor: colors.surfaceElevated }]}
               >
@@ -69,19 +71,19 @@ export default function BookPreviewModal({ book, inLibrary, isAdding, onAdd, onR
                   {book.total_pages !== null && (
                     <View style={styles.pagesRow}>
                       <SymbolView name={{ ios: 'doc.text', android: 'description' }} size={18} tintColor={colors.textSecondary} />
-                      <Text style={[styles.pages, { color: colors.textSecondary }]}>{book.total_pages + ' pages'}</Text>
+                      <Text style={[styles.pages, { color: colors.textSecondary }]}>{t('common.pages', { count: book.total_pages })}</Text>
                     </View>
                   )}
                 </View>
               </View>
 
               <Text style={[styles.sectionTitle, { color: colors.text }]} accessibilityRole="header">
-                Résumé
+                {t('preview.summary')}
               </Text>
               {book.description !== null ? (
                 <Text style={[styles.description, { color: colors.text }]}>{book.description}</Text>
               ) : (
-                <Text style={[styles.description, { color: colors.textSecondary }]}>Aucun résumé disponible pour ce livre.</Text>
+                <Text style={[styles.description, { color: colors.textSecondary }]}>{t('preview.noSummary')}</Text>
               )}
             </ScrollView>
 

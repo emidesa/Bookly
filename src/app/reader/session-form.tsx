@@ -20,6 +20,7 @@ import EmptyState from '../../components/EmptyState';
 import FormError from '../../components/FormError';
 import FormField from '../../components/FormField';
 import PrimaryButton from '../../components/PrimaryButton';
+import { useLanguage } from '../../context/LanguageContext';
 import { getBook } from '../../services/bookService';
 import { createSession, deleteSession, getSession, updateSession } from '../../services/sessionService';
 import { serifFont } from '../../theme/fonts';
@@ -46,6 +47,7 @@ function fromApiDate(text: string): Date {
 export default function SessionFormScreen(): JSX.Element {
   const colors = useThemeColors();
   const insets = useSafeAreaInsets();
+  const { t } = useLanguage();
   const { bookId: bookIdParam, sessionId: sessionIdParam } = useLocalSearchParams<{ bookId: string; sessionId?: string }>();
   const bookId = Number(bookIdParam);
   const sessionId = sessionIdParam === undefined ? null : Number(sessionIdParam);
@@ -100,7 +102,7 @@ export default function SessionFormScreen(): JSX.Element {
           setLoadedKey(formKey);
         })
         .catch((caught: unknown) => {
-          if (isActive) setLoadError(getErrorMessage(caught, 'Impossible de charger la session.'));
+          if (isActive) setLoadError(getErrorMessage(caught, t('sessionForm.loadError')));
         });
 
       // Bouton retour d'Android : même destination que la flèche
@@ -113,7 +115,7 @@ export default function SessionFormScreen(): JSX.Element {
         isActive = false;
         subscription.remove();
       };
-    }, [bookId, sessionId, formKey, goToBook]),
+    }, [bookId, sessionId, formKey, goToBook, t]),
   );
 
   async function handleSubmit(): Promise<void> {
@@ -121,21 +123,21 @@ export default function SessionFormScreen(): JSX.Element {
 
     // Vérifications rapides ; le serveur refait toutes les vérifications
     if (!DIGITS_REGEX.test(startPage) || !DIGITS_REGEX.test(endPage)) {
-      setError('Indique la page de début et la page de fin.');
+      setError(t('sessionForm.missingPages'));
       return;
     }
     const start = Number(startPage);
     const end = Number(endPage);
     if (end < start) {
-      setError('La page de fin doit être supérieure ou égale à la page de début.');
+      setError(t('sessionForm.endBeforeStart'));
       return;
     }
     if (book.total_pages && end > book.total_pages) {
-      setError('Le livre ne compte que ' + book.total_pages + ' pages.');
+      setError(t('sessionForm.tooManyPages', { count: book.total_pages }));
       return;
     }
     if (duration !== '' && (!DIGITS_REGEX.test(duration) || Number(duration) === 0)) {
-      setError('La durée doit être un nombre de minutes.');
+      setError(t('sessionForm.invalidDuration'));
       return;
     }
 
@@ -157,14 +159,14 @@ export default function SessionFormScreen(): JSX.Element {
 
       // Dernière page atteinte : le serveur a passé le livre en « lu »
       if (book.total_pages && end >= book.total_pages && book.status !== 'read') {
-        Alert.alert('Bravo !', 'Tu as terminé « ' + book.title + ' ». Il rejoint tes livres lus.', [
-          { text: 'OK', onPress: goToBook },
+        Alert.alert(t('sessionForm.finishedTitle'), t('sessionForm.finishedMessage', { title: book.title }), [
+          { text: t('common.ok'), onPress: goToBook },
         ]);
         return;
       }
       goToBook();
     } catch (caught) {
-      setError(getErrorMessage(caught, "Impossible d'enregistrer la session."));
+      setError(getErrorMessage(caught, t('sessionForm.saveFailed')));
     } finally {
       setIsSaving(false);
     }
@@ -172,16 +174,16 @@ export default function SessionFormScreen(): JSX.Element {
 
   function confirmDelete(): void {
     if (sessionId === null) return;
-    Alert.alert('Supprimer cette session ?', 'Le statut du livre ne changera pas.', [
-      { text: 'Annuler', style: 'cancel' },
+    Alert.alert(t('sessionForm.deleteTitle'), t('sessionForm.deleteMessage'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Supprimer',
+        text: t('common.delete'),
         style: 'destructive',
         onPress: () => {
           setIsDeleting(true);
           deleteSession(sessionId)
             .then(goToBook)
-            .catch((caught: unknown) => setError(getErrorMessage(caught, 'Impossible de supprimer la session.')))
+            .catch((caught: unknown) => setError(getErrorMessage(caught, t('sessionForm.deleteFailed'))))
             .finally(() => setIsDeleting(false));
         },
       },
@@ -193,17 +195,23 @@ export default function SessionFormScreen(): JSX.Element {
     return (
       <View style={[styles.centered, { backgroundColor: colors.background }]}>
         {loadError !== null ? (
-          <EmptyState message={loadError} isError={true} buttonLabel="Retour" onPress={goToBook} />
+          <EmptyState message={loadError} isError={true} buttonLabel={t('common.back')} onPress={goToBook} />
         ) : (
-          <ActivityIndicator size="large" color={colors.primary} accessibilityLabel="Chargement" />
+          <ActivityIndicator size="large" color={colors.primary} accessibilityLabel={t('common.loading')} />
         )}
       </View>
     );
   }
 
-  let progressText = 'Pas encore commencé';
+  let progressText = t('sessionForm.notStarted');
   if (book.current_page > 0) {
-    progressText = 'Progression actuelle : page ' + book.current_page;
+    progressText = t('sessionForm.currentProgress', { page: book.current_page });
+  }
+
+  // Nouvelle session sur un livre déjà commencé : on reprend là où on s'était arrêté
+  let startPageLabel = t('sessionForm.startPage');
+  if (!isEditing && book.pages_read !== null) {
+    startPageLabel = t('sessionForm.resumePage');
   }
 
   return (
@@ -220,14 +228,14 @@ export default function SessionFormScreen(): JSX.Element {
           <Pressable
             onPress={goToBook}
             accessibilityRole="button"
-            accessibilityLabel="Retour au livre"
+            accessibilityLabel={t('sessionForm.backToBook')}
             hitSlop={12}
             style={[styles.backButton, { backgroundColor: colors.surface, borderColor: colors.separator }]}
           >
             <SymbolView name={{ ios: 'chevron.left', android: 'arrow_back' }} size={20} tintColor={colors.primary} />
           </Pressable>
           <Text style={[styles.title, { color: colors.text }]} accessibilityRole="header">
-            {isEditing ? 'Modifier la session' : 'Nouvelle session'}
+            {isEditing ? t('sessionForm.editTitle') : t('sessionForm.newTitle')}
           </Text>
         </View>
 
@@ -246,12 +254,12 @@ export default function SessionFormScreen(): JSX.Element {
           </View>
         </View>
 
-        <DateField label="Date" value={date} onChange={setDate} maximumDate={new Date()} />
+        <DateField label={t('sessionForm.date')} value={date} onChange={setDate} maximumDate={new Date()} />
 
         <View style={styles.pagesRow}>
           <View style={styles.pageField}>
             <FormField
-              label="Page de début"
+              label={startPageLabel}
               value={startPage}
               onChangeText={setStartPage}
               keyboardType="number-pad"
@@ -260,18 +268,18 @@ export default function SessionFormScreen(): JSX.Element {
           </View>
           <View style={styles.pageField}>
             <FormField
-              label="Page de fin"
+              label={t('sessionForm.endPage')}
               value={endPage}
               onChangeText={setEndPage}
               keyboardType="number-pad"
               maxLength={5}
-              placeholder={book.total_pages ? 'sur ' + book.total_pages : undefined}
+              placeholder={book.total_pages ? t('sessionForm.endPlaceholder', { count: book.total_pages }) : undefined}
             />
           </View>
         </View>
 
         <FormField
-          label="Durée (minutes)"
+          label={t('sessionForm.duration')}
           icon={{ ios: 'clock', android: 'schedule' }}
           value={duration}
           onChangeText={setDuration}
@@ -281,32 +289,32 @@ export default function SessionFormScreen(): JSX.Element {
         />
 
         <FormField
-          label="Commentaire (facultatif)"
+          label={t('sessionForm.comment')}
           value={comment}
           onChangeText={setComment}
           multiline
           maxLength={1000}
-          placeholder="Une lecture douce, parfaite pour ce dimanche…"
+          placeholder={t('sessionForm.commentPlaceholder')}
         />
 
         <FormError message={error} />
 
         <View style={styles.actions}>
           <PrimaryButton
-            label={isEditing ? 'Enregistrer les modifications' : 'Enregistrer la session'}
+            label={isEditing ? t('sessionForm.saveChanges') : t('sessionForm.saveSession')}
             onPress={() => void handleSubmit()}
             isLoading={isSaving}
           />
           <Pressable
             onPress={goToBook}
             accessibilityRole="button"
-            accessibilityLabel="Annuler"
+            accessibilityLabel={t('common.cancel')}
             style={({ pressed }) => [
               styles.cancelButton,
               { backgroundColor: colors.surface, borderColor: colors.separator, opacity: pressed ? 0.7 : 1 },
             ]}
           >
-            <Text style={[styles.cancelText, { color: colors.primary }]}>Annuler</Text>
+            <Text style={[styles.cancelText, { color: colors.primary }]}>{t('common.cancel')}</Text>
           </Pressable>
 
           {/* Suppression : seulement pour une session existante */}
@@ -315,7 +323,7 @@ export default function SessionFormScreen(): JSX.Element {
               onPress={confirmDelete}
               disabled={isDeleting}
               accessibilityRole="button"
-              accessibilityLabel="Supprimer la session"
+              accessibilityLabel={t('sessionForm.deleteSession')}
               accessibilityState={{ disabled: isDeleting, busy: isDeleting }}
               style={({ pressed }) => [
                 styles.cancelButton,
@@ -324,7 +332,7 @@ export default function SessionFormScreen(): JSX.Element {
               ]}
             >
               <SymbolView name={{ ios: 'trash', android: 'delete' }} size={18} tintColor={colors.error} />
-              <Text style={[styles.cancelText, { color: colors.error }]}>Supprimer la session</Text>
+              <Text style={[styles.cancelText, { color: colors.error }]}>{t('sessionForm.deleteSession')}</Text>
             </Pressable>
           ) : null}
         </View>

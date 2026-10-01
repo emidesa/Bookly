@@ -5,6 +5,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import AnimatedSplash from '../components/AnimatedSplash';
 import { AuthProvider, useAuth } from '../context/AuthContext';
+import { LanguageProvider } from '../context/LanguageContext';
 import { ThemeProvider } from '../context/ThemeContext';
 
 // Garde le splash natif affiché jusqu'au démarrage du splash animé
@@ -36,17 +37,19 @@ function RootNavigator(): JSX.Element {
 export default function RootLayout(): JSX.Element {
   const [showSplash, setShowSplash] = useState(true);
 
-  // ThemeProvider (mode sombre) et AuthProvider autour de toute l'app
+  // LanguageProvider (langue), ThemeProvider (mode sombre) et AuthProvider autour de toute l'app
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <View style={{ flex: 1 }}>
-          {/* Heure et batterie lisibles : sombres en clair, blanches en sombre */}
-          <StatusBar style="auto" />
-          <RootNavigator />
-          {showSplash && <AnimatedSplash onFinish={() => setShowSplash(false)} />}
-        </View>
-      </AuthProvider>
-    </ThemeProvider>
+    <LanguageProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <View style={{ flex: 1 }}>
+            {/* Heure et batterie lisibles : sombres en clair, blanches en sombre */}
+            <StatusBar style="auto" />
+            <RootNavigator />
+            {showSplash && <AnimatedSplash onFinish={() => setShowSplash(false)} />}
+          </View>
+        </AuthProvider>
+      </ThemeProvider>
+    </LanguageProvider>
   );
 }

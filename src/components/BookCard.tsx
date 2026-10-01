@@ -4,8 +4,9 @@ import BookCover from './BookCover';
 import ProgressBar from './ProgressBar';
 import StatusBadge from './StatusBadge';
 import { serifFont } from '../theme/fonts';
+import { useLanguage } from '../context/LanguageContext';
 import { useThemeColors } from '../theme/useThemeColors';
-import { BookStatus, statusLabels } from '../types/book';
+import { BookStatus, statusKeys } from '../types/book';
 
 interface BookCardProps {
   title: string;
@@ -18,6 +19,7 @@ interface BookCardProps {
 
 export default function BookCard({ title, author, coverUrl, status, progressPercent, onPress }: BookCardProps): JSX.Element {
   const colors = useThemeColors();
+  const { t } = useLanguage();
 
   // Progression : seulement pour un livre de la PAL dont le nombre de pages est connu
   let percent: number | null = null;
@@ -28,13 +30,13 @@ export default function BookCard({ title, author, coverUrl, status, progressPerc
   // Phrase lue par VoiceOver pour toute la carte
   let label = title;
   if (author !== null) {
-    label = label + ', de ' + author;
+    label = label + ', ' + t('common.by', { author: author });
   }
   if (status !== undefined) {
-    label = label + ', ' + statusLabels[status];
+    label = label + ', ' + t(statusKeys[status]);
   }
   if (percent !== null) {
-    label = label + ', lu à ' + percent + ' %';
+    label = label + ', ' + t('bookCard.readPercent', { percent: percent });
   }
 
   const isPressable = onPress !== undefined;
