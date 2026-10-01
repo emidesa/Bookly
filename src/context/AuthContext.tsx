@@ -9,7 +9,8 @@ import {
   type JSX,
   type ReactNode,
 } from 'react';
-import { Alert } from 'react-native';
+import { Alert, Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { api, ApiError, setAuthToken, setUnauthorizedHandler } from '../services/api';
 import type { AuthResponse, LoginBody, RegisterBody, UpdateProfileBody, User } from '../types/user';
@@ -31,12 +32,34 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+// SecureStore n'existe pas sur le web : AsyncStorage (localStorage) à la place
+const isWeb = Platform.OS === 'web';
+
+async function saveToken(token: string): Promise<void> {
+  if (isWeb) {
+    await AsyncStorage.setItem(TOKEN_KEY, token);
+  } else {
+    await SecureStore.setItemAsync(TOKEN_KEY, token);
+  }
+}
+
+async function deleteToken(): Promise<void> {
+  if (isWeb) {
+    await AsyncStorage.removeItem(TOKEN_KEY);
+  } else {
+    await SecureStore.deleteItemAsync(TOKEN_KEY);
+  }
+}
+
 // Lecture protégée : sur Android, un token restauré par la sauvegarde peut être illisible
 async function readToken(): Promise<string | null> {
   try {
+    if (isWeb) {
+      return await AsyncStorage.getItem(TOKEN_KEY);
+    }
     return await SecureStore.getItemAsync(TOKEN_KEY);
   } catch {
-    await SecureStore.deleteItemAsync(TOKEN_KEY).catch(() => undefined);
+    await deleteToken().catch(() => undefined);
     return null;
   }
 }
@@ -55,7 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
 
   // Enregistre une session valide (login ou /me)
   const saveSession = useCallback(async ({ token, user: newUser }: AuthResponse): Promise<void> => {
-    await SecureStore.setItemAsync(TOKEN_KEY, token);
+    await saveToken(token);
     setAuthToken(token);
     setUser(newUser);
     setStatus('signedIn');
@@ -65,7 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
     setAuthToken(null);
     setUser(null);
     setStatus('signedOut');
-    await SecureStore.deleteItemAsync(TOKEN_KEY).catch(() => undefined);
+    await deleteToken().catch(() => undefined);
   }, []);
 
   // Le serveur confirme le token enregistré et renvoie l'utilisateur à jour
